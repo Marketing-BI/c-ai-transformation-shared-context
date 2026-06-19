@@ -1,36 +1,65 @@
 ---
 name: open-pr
-argument-hint: "[reviewer] [draft]"
+argument-hint: "[reviewer] [draft] [prep-only]"
 description: |
-  Use when the user wants to push the current branch and open a pull/merge request on their git host in one step,
-  with the chosen reviewer requested. Resolves a Jira ticket key from the current branch (or recent commits), resolves
-  a reviewer from the project's team mapping (or by asking the user), pushes the branch if needed, opens the PR/MR on
-  your git host with that person requested as reviewer, and optionally sets your issue tracker's reviewer/QA field if
-  your team wires one. Host-agnostic — the client wires their git host's CLI or MCP. Used directly or chained from
-  /dev:pr-prep. Never transitions Jira status — use /common:jira-update for that.
+  Use when the user wants to get changes ready for review and open a pull/merge request on their git host — the whole
+  pre-PR/MR flow in one skill. Phase 1 runs the post-implementation checklist (detect new environment variables and
+  propagate them to the env-example file / container compose file / README, bump the project's version file, append a
+  CHANGELOG entry, review CLAUDE.md, and summarize the changes). Phase 2 resolves a Jira ticket key from the current
+  branch (or recent commits), resolves a reviewer from the project's team mapping (or by asking the user), pushes the
+  branch, opens the PR/MR on your git host with that person requested as reviewer, and optionally sets your issue
+  tracker's reviewer/QA field if your team wires one. Run `prep-only` to stop after Phase 1 (checklist, no push, no
+  PR/MR). Host-agnostic and language-agnostic — the client wires their git host's CLI or MCP. Defers to /common:git-pr
+  for the PR/MR title/description conventions. Never transitions Jira status — use /common:jira-update for that.
 
-  English triggers: "open pr", "open mr", "create pr", "create mr", "open a pull request", "open a merge request",
-  "ready for review", "push and open pr", "/dev:open-pr", "/dev:open-pr <reviewer>", "/dev:open-pr <reviewer> draft"
+  English triggers: "prep pr", "prep mr", "prepare pr", "prepare mr", "pre-pr checklist", "ready for pr", "ready for mr",
+  "open pr", "open mr", "create pr", "create mr", "open a pull request", "open a merge request", "push and open pr",
+  "ready for review", "/dev:open-pr", "/dev:open-pr <reviewer>", "/dev:open-pr <reviewer> draft",
+  "/dev:open-pr prep-only"
 
-  České spouštěče: "otevři pr", "otevři mr", "vytvoř pr", "vytvoř mr", "otevři pull request", "otevři merge request",
-  "připraveno k review", "pushni a otevři pr", "/dev:open-pr", "/dev:open-pr <reviewer>", "/dev:open-pr <reviewer> draft"
+  České spouštěče: "připrav pr", "připrav mr", "příprava na pr", "checklist před pr", "připraveno k review", "otevři pr",
+  "otevři mr", "vytvoř pr", "vytvoř mr", "otevři pull request", "otevři merge request", "pushni a otevři pr",
+  "/dev:open-pr", "/dev:open-pr <reviewer>", "/dev:open-pr <reviewer> draft", "/dev:open-pr prep-only"
 
-  Do NOT apply when: the user only wants the pre-PR/MR checklist without opening anything (use /dev:pr-prep with no
-  create token), only wants to write commit messages (use /common:git-commit), or only wants to move a Jira ticket
-  (use /common:jira-update).
+  Do NOT apply when: the user only wants to write commit messages (use /common:git-commit), or only wants to move a Jira
+  ticket (use /common:jira-update).
 user-invocable: true
 allowed-tools:
-  Read, Bash, Glob, Grep, Skill, AskUserQuestion, mcp__atlassian__*
+  Read, Write, Edit, Bash, Glob, Grep, Skill, AskUserQuestion, mcp__atlassian__*
 ---
 
 # Open PR/MR
 
-Push the current branch and open a pull/merge request on your git host in a single flow, with the chosen reviewer
-requested. Optionally also set a reviewer/QA field on the linked issue if your team uses one.
+Get the current branch ready for review and open a pull/merge request on your git host in a single flow. Two phases:
+
+- **Phase 1 — pre-flight checklist** (steps P1–P5): propagate new env vars, bump the version, append a CHANGELOG entry,
+  review `CLAUDE.md`, and produce a change summary. Local file edits only — no push, no PR/MR.
+- **Phase 2 — push + open** (steps 0–7): resolve the Jira key + reviewer, push the branch, and open the PR/MR with the
+  reviewer requested. The Phase-1 summary feeds the PR/MR body directly.
+
+Run with `prep-only` to stop after Phase 1.
+
+This skill is **language- and host-agnostic**. In Phase 1 the file names below (env-example file, container compose
+file, version file, changelog) are *roles*, not a fixed ecosystem — map each to whatever your project actually uses.
+
+## Arguments
+
+```text
+/dev:open-pr [reviewer] [draft] [prep-only]
+```
+
+- `reviewer` — optional. Matches the team mapping by **email**, **git-host handle**, or case-insensitive **substring on
+  display name**. Only used in Phase 2.
+- `draft` — optional flag → opens the PR/MR as a draft (use your host's draft option). Only used in Phase 2.
+- `prep-only` — optional flag → run **Phase 1 only** and stop (checklist + summary; never pushes, never opens a PR/MR).
+
+Token order does not matter. With `prep-only`, the skill ends after step P5. Otherwise it runs Phase 1 then Phase 2. If
+`reviewer` is omitted or matches nothing, prompt the user via `AskUserQuestion` using entries from the
+[team mapping](references/team-mapping.md).
 
 ## Host integration (configure this)
 
-This skill is **git-host-agnostic**. It describes the *actions* — "push the branch", "open a PR/MR with a reviewer
+Phase 2 is **git-host-agnostic**. It describes the *actions* — "push the branch", "open a PR/MR with a reviewer
 requested", "check for an existing PR/MR" — and leaves the concrete command to your environment. Wire one of these in
 your project and use it for every host action below:
 
@@ -45,7 +74,7 @@ PR/MR body via a quoted heredoc when the CLI takes it on the command line, so ta
 ## Issue tracker (Jira) integration
 
 The Jira ticket key drives the PR/MR title and the Jira link in the body. Jira reads use the Atlassian MCP
-(`mcp__atlassian__*`). Resolve the right `cloudId` once at the start of the run (see Setup) and reuse it for every
+(`mcp__atlassian__*`). Resolve the right `cloudId` once at the start of Phase 2 (see Setup) and reuse it for every
 Atlassian MCP call.
 
 - **Atlassian site** — your Jira site host (e.g. `«your-jira-site»`), used only to pick the right resource from
@@ -53,19 +82,6 @@ Atlassian MCP call.
 - **Optional reviewer/QA field** — if your team tracks the reviewer/QA on the issue, set that field too (step 6). This
   is **opt-in and configurable**: put your tracker's field id in `references/team-mapping.md`. With no field configured,
   skip that step entirely. **No custom field is hardcoded here.**
-
-## Arguments
-
-```text
-/dev:open-pr [reviewer] [draft]
-```
-
-- `reviewer` — optional. Matches the team mapping by **email**, **git-host handle**, or case-insensitive **substring on
-  display name**.
-- `draft` — optional flag → opens the PR/MR as a draft (use your host's draft option).
-
-Token order does not matter. If `reviewer` is omitted or matches nothing, prompt the user via `AskUserQuestion` using
-entries from the [team mapping](references/team-mapping.md).
 
 ## Team mapping
 
@@ -75,7 +91,80 @@ team**. Edit that table to add or remove people. If your tracker has a reviewer/
 runtime by looking the person up in your issue tracker by email (via the Atlassian MCP account-lookup call) — it is not
 stored in the table.
 
-## Procedure
+---
+
+## Phase 1 — Pre-flight checklist
+
+Run this after implementation is complete, before push. It mutates only local files. With `prep-only`, the skill stops
+at the end of this phase.
+
+### P1. Check for new environment variables
+
+Scan all changed files for any newly introduced environment variables — new reads of the process environment, new
+entries in config files, or new constants derived from environment variables. List them in the terminal:
+
+- Variable name
+- Purpose
+- Default value (if any)
+
+If new env vars exist, propagate them to whichever of these the project keeps:
+
+- The **env-example file** (the committed template of expected env vars) — add each with a sensible default or a `???`
+  placeholder.
+- The **container compose file**'s environment section, if one exists.
+- The **README** env-vars section, if it exists and documents env vars.
+
+If no new env vars were introduced, state that explicitly.
+
+### P2. Update version
+
+- Read the current version from the project's **version file** (the manifest/descriptor that carries the project
+  version — whatever your ecosystem uses).
+- Determine the bump type based on the changes, following semantic-versioning intent:
+  - **patch**: bug fixes, minor tweaks
+  - **minor**: new features, non-breaking additions
+  - **major**: breaking changes
+- Apply the bump. Prefer the ecosystem's own tooling so any lockfile / companion file stays in sync **without** creating
+  a git commit or tag. If no such tool is available, edit the version file directly (and update any lockfile/companion
+  file that mirrors the version so they match).
+
+If the project has no version file, note that and skip this step. Keep `old → new` for the PR/MR body (step 5).
+
+### P3. Update changelog
+
+- Add a new version section to the **changelog** (e.g. `CHANGELOG.md`) following the existing format.
+- Include the Jira ticket key if available (from the branch name or conversation context).
+- Keep entries concise — one bullet per logical change.
+
+If the project keeps no changelog, note that and skip this step.
+
+### P4. Check CLAUDE.md
+
+Review whether the changes affect anything documented in `CLAUDE.md` (and any rule files it references):
+
+- New architectural patterns or modules
+- New conventions or constraints
+- Changes to existing documented behavior
+
+If updates are needed, apply them. If not, state that no updates are needed.
+
+### P5. Summarize changes
+
+Provide a concise description of all changes made in this session — what was added/changed and why. This is the change
+summary that feeds the **Summary** section of the PR/MR body in Phase 2 (step 5). Keep the env-var list (P1) and the
+version `old → new` (P2) in scope too — they populate the **Environment variables** and **Version** sections of the body.
+
+> **`prep-only` stops here.** Use `/common:git-commit` to commit the files Phase 1 changed (env files, version file,
+> changelog, `CLAUDE.md`) on the current branch; use `/common:jira-update` if you also want to move the ticket. Re-run
+> `/dev:open-pr` (without `prep-only`) when you're ready to push and open the PR/MR.
+
+---
+
+## Phase 2 — Push + open the PR/MR
+
+Push the current branch and open a pull/merge request on your git host, with the chosen reviewer requested. Optionally
+also set a reviewer/QA field on the linked issue if your team uses one. The change summary, env-var list, and version
+bump from Phase 1 feed the PR/MR body directly.
 
 Copy this checklist and check items off as you go:
 
@@ -126,7 +215,7 @@ mcp__atlassian__getJiraIssue
 - **Not found** → ask the user via `AskUserQuestion` to confirm the key or supply the right one, then re-verify. Halt if
   the user can't produce a valid key. Do not open a PR/MR pointing at a ticket that does not exist.
 - **Found** → keep `jiraSummary` and `jiraDescription` in scope. They drive the PR/MR title in step 5 and the Summary
-  section of the body when no pr-prep context is provided.
+  section of the body when no Phase-1 summary is available.
 
 ### 2. Resolve reviewer
 
@@ -180,13 +269,21 @@ number, draft flag, and state.
 
 ### 5. Build PR/MR title + body, confirm, create
 
-Construct the title and body per [`references/pr-template.md`](references/pr-template.md) — title rules, the body
-template, the `Version` / `Environment variables` sections (from the pr-prep context block when chained, otherwise
-derived read-only from the branch), the section-sources table, and the pr-prep handoff contract (the `<!-- pr-prep:* -->`
-markers + parsing rules). Use the resource `url` from step 0 as `<site>` for the Jira link.
+The PR/MR title and description conventions are owned by [`/common:git-pr`](../../../common/commands/git-pr.md) — it is
+the single source of truth for the title format (`<type>(<scope>): <summary>`, under 72 chars) and the body structure.
+Follow it. [`references/pr-template.md`](references/pr-template.md) is the concrete fill-in skeleton that *follows*
+`/common:git-pr` — it maps each section to its source (the Phase-1 summary / env-var list / version bump, or values
+derived read-only from the branch when Phase 1 was skipped) and adds the `Version`, `Environment variables`, and `Jira`
+fields. Use the resource `url` from step 0 as `<site>` for the Jira link.
 
-This skill is read-only with respect to the worktree — it never propagates env vars or bumps the version file. Those
-mutations belong to [`/dev:pr-prep`](../pr-prep/SKILL.md).
+Fill the body from Phase 1 when available:
+
+- **Summary** ← the Phase-1 change summary (step P5). When Phase 1 was skipped, paraphrase `jiraSummary` +
+  `jiraDescription` (step 1) combined with the diff / commit log.
+- **Version** ← `old → new` from step P2. When Phase 1 was skipped, show a bump only if the branch diff already changed
+  the version file; otherwise omit the section. Never bump the version in Phase 2.
+- **Environment variables** ← the env-var list from step P1 (or "None"). When Phase 1 was skipped, scan the branch diff
+  read-only and list new env vars (or "None") — do **not** propagate them to project files here.
 
 **Confirmation gate**: show the full title and body exactly as they will appear and ask `Create PR/MR now? (yes / edit /
 cancel)`:
@@ -248,7 +345,16 @@ reviewer-resolution problems, push/PR-MR/Jira errors, existing-PR/MR and cancel 
 
 ## Notes
 
-- Never pushes to `main` / `master` or any protected branch directly.
-- Never amends commits, force-pushes, or skips hooks.
+- **Phase 1 mutates local files only** (env-example / container compose / README, version file, changelog, `CLAUDE.md`)
+  — it never pushes and never opens a PR/MR. `prep-only` stops there.
+- **Phase 2 never pushes to `main` / `master`** or any protected branch directly. Never amends commits, force-pushes, or
+  skips hooks.
+- **Language-agnostic** — treat the env-example file, container compose file, version file, and changelog as roles to
+  map onto your stack, not fixed filenames.
+- **Host-agnostic** — wire your git host's CLI/MCP in the Host integration section.
+- PR/MR title/description conventions are owned by `/common:git-pr`; this skill defers to it and never re-defines them.
 - Status transitions are out of scope; use `/common:jira-update` if you also want to move the ticket.
+- Use `/common:git-commit` to commit the files Phase 1 changes on the current branch.
 - The reviewer/QA tracker field is **opt-in** — nothing is hardcoded; configure it (or don't) in `references/team-mapping.md`.
+</content>
+</invoke>

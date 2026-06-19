@@ -1,27 +1,29 @@
-# PR/MR title + body
+# PR/MR title + body — fill-in skeleton
 
-How the pull/merge request should look. Used by step 5 of the procedure. `<site>` throughout is the resource `url`
-resolved in step 0 (setup), not a hardcoded host.
+Concrete fill-in skeleton for step 5. The **title and description conventions are owned by**
+[`/common:git-pr`](../../../../common/commands/git-pr.md) — follow it for the title format and the base body structure.
+This file does not redefine those conventions; it only maps each section to its source and adds the project-specific
+`Version`, `Environment variables`, and `Jira` fields on top of the `/common:git-pr` template.
 
-## Title (under 70 chars)
+`<site>` throughout is the resource `url` resolved in step 0 (setup), not a hardcoded host.
 
-- Format: `<TICKET>: <summary>`.
-- Derive `<summary>` from the **work that was actually implemented**, framed against the Jira ticket. Inputs, in order
-  of weight:
-  1. `jiraSummary` + `jiraDescription` from step 1 — tells you what the ticket asked for.
-  2. The diff against the base branch (`git diff <default-branch>...HEAD --stat` plus
-     `git log <default-branch>..HEAD --pretty=%s`) — tells you what was actually built.
-  3. The pr-prep summary (`<!-- pr-prep:summary -->`) when chained, since it is the human-curated description of the
-     implemented change.
+## Title
 
-  Write a present-tense imperative phrase ("add X", "fix Y", "switch Z to W"), not the raw ticket title. Strip any
-  leading `<TICKET>:` / `[<TICKET>]` if you reuse text. Truncate to keep the whole title under 70 chars.
-- If no Jira key exists (the user skipped step 1), fall back to a phrase derived from the diff + commit log only — no
-  ticket prefix.
+Follow `/common:git-pr`'s title rule: `<type>(<scope>): <summary>`, under 72 chars. Derive `<summary>` from the **work
+that was actually implemented**, framed against the Jira ticket. Inputs, in order of weight:
+
+1. `jiraSummary` + `jiraDescription` from step 1 — tells you what the ticket asked for.
+2. The diff against the base branch (`git diff <default-branch>...HEAD --stat` plus
+   `git log <default-branch>..HEAD --pretty=%s`) — tells you what was actually built.
+3. The Phase-1 change summary (step P5) when Phase 1 ran — the human-curated description of the implemented change.
+
+Write a present-tense imperative phrase ("add X", "fix Y", "switch Z to W"), not the raw ticket title. Prefix per your
+project convention (e.g. include the `<TICKET>` if your team puts it in the title). If no Jira key exists (the user
+skipped step 1), fall back to a phrase derived from the diff + commit log only.
 
 ## Body
 
-Full section order:
+Body structure follows `/common:git-pr`, extended with `Version`, `Environment variables`, and `Jira` fields:
 
 ```markdown
 ## Summary
@@ -45,58 +47,28 @@ Full section order:
 - [ ] <fill in>
 ```
 
-`Summary`, `Jira`, and `Test plan` are always present. `Version` and `Environment variables` are filled from the
-pr-prep context block when chained, or **derived read-only from the branch itself** when standalone (see Section
-sources). The skill works the same either way — chaining just supplies values it would otherwise compute.
+`Summary`, `Jira`, and `Test plan` are always present.
 
 - **`Environment variables`** is always included; its value is "None" when no new env vars were found.
-- **`Version`** is included only when there is a bump to report — a chained value, or a version-file change already
-  present on the branch diff. Standalone with no bump: omit the section rather than print a placeholder. This skill
-  never bumps the version itself.
+- **`Version`** is included only when there is a bump to report. Standalone (Phase 1 skipped) with no bump: omit the
+  section rather than print a placeholder. Phase 2 never bumps the version itself.
 
 ## Section sources
 
-Fill each section from the best available source:
+Fill each section from the best available source. When Phase 1 ran, the values come straight from it; when Phase 1 was
+skipped (e.g. someone ran Phase 2 standalone), derive them read-only from the branch.
 
-| Section               | Chained from `/dev:pr-prep`                | Standalone                                                                |
-| --------------------- | ------------------------------------------ | ------------------------------------------------------------------------- |
-| Summary               | `<!-- pr-prep:summary -->` content         | Paraphrase of `jiraSummary` + `jiraDescription` (step 1) combined with the diff / commit log. Never literal "TBD". |
-| Version               | `<!-- pr-prep:version -->` content         | If the branch diff changed the project's version file, show `old → new`; otherwise omit the section. Never bump the version here. |
-| Environment variables | `<!-- pr-prep:env -->` content (or "None") | Scan the branch diff (`git diff <default-branch>...HEAD`) for newly introduced env vars — same definition as `/dev:pr-prep` step 1 (new env reads, new config entries, new env-derived constants) — and list them, or "None". Read-only: do **not** propagate to the env-example file / container compose file / README. |
-| Jira                  | Resolved ticket key from step 1            | Same                                                                      |
-| Test plan             | Leave the checkbox for the reviewer        | Same                                                                      |
+| Section               | From Phase 1 (steps P1–P5)            | Phase 1 skipped (read-only from branch)                                                                          |
+| --------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Summary               | The step-P5 change summary            | Paraphrase of `jiraSummary` + `jiraDescription` (step 1) combined with the diff / commit log. Never literal "TBD". |
+| Version               | `old → new` from step P2              | If the branch diff changed the project's version file, show `old → new`; otherwise omit the section. Never bump the version here. |
+| Environment variables | The env-var list from step P1 (or "None") | Scan the branch diff (`git diff <default-branch>...HEAD`) for newly introduced env vars (new env reads, new config entries, new env-derived constants) and list them, or "None". Read-only: do **not** propagate to the env-example file / container compose file / README. |
+| Jira                  | Resolved ticket key from step 1       | Same                                                                                                            |
+| Test plan             | Leave the checkbox for the reviewer   | Same                                                                                                            |
 
-## pr-prep handoff contract
-
-When invoked from `/dev:pr-prep`, the caller forwards a single markdown block as part of the `Skill` tool input
-(alongside any `draft` token). The block is delimited by HTML comments so it's unambiguous to parse and trivially
-survives prose around it:
-
-```markdown
-<!-- pr-prep:summary -->
-<one-paragraph summary>
-<!-- /pr-prep:summary -->
-
-<!-- pr-prep:env -->
-<env-var list, or "None">
-<!-- /pr-prep:env -->
-
-<!-- pr-prep:version -->
-<old> → <new>
-<!-- /pr-prep:version -->
-```
-
-Parsing rules:
-
-- A section is **present** iff both its opening and closing markers appear in the skill input. Anything between them
-  (trimmed) is the section content.
-- If a marker pair is missing, treat that section as **absent** and fall back to the standalone behaviour for that row
-  in the Section sources table above. Do not invent values.
-- Whitespace and surrounding prose outside the marker pairs are ignored.
-
-This skill derives env vars and version **read-only**, purely to populate the PR/MR body. It never mutates the worktree
-— propagating env vars to the env-example file / container compose file / README and bumping the version file belong to
-[`/dev:pr-prep`](../../pr-prep/SKILL.md). Route the user there if they want those file changes.
+Phase 2 derives env vars and version **read-only**, purely to populate the PR/MR body. The worktree mutations
+(propagating env vars to the env-example file / container compose file / README and bumping the version file) belong to
+Phase 1 — run the full `/dev:open-pr` (not `prep-only` skipped) if those file changes are wanted.
 
 ## Passing the body to your git host
 
@@ -106,7 +78,7 @@ intact (the `'EOF'` quoting prevents the shell from expanding `$`, backticks, et
 ```bash
 <your-host-cli> <create-pr-or-mr-command> \
   --base "<default-branch>" \
-  --title "<TICKET>: <summary>" \
+  --title "<type>(<scope>): <summary>" \
   --reviewer "<handle>" \
   --body "$(cat <<'EOF'
 ## Summary
