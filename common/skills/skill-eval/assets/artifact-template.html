@@ -1,0 +1,454 @@
+<!--
+  Prompt Eval — re-runnable HTML report template
+
+  When rendering the report, replace __EVAL_DATA_PLACEHOLDER__ with a
+  JSON object matching the shape below. Do NOT wrap it in quotes — it's a
+  JavaScript variable assignment.
+
+  Data shape:
+  {
+    "headline_score": 7.4,
+    "mean_score": 7.4,
+    "num_cases": 8,
+    "model": "<model id used for the run>",
+    "dataset_source": "auto-generated | file:<path>",
+    "timestamp": "2026-04-23T10:00:00Z",
+    "target_type": "skill | prompt",
+    "target_name": "my-skill",
+    "target_body": "... full text ...",
+    "score_distribution": [0, 0, 0, 1, 0, 2, 3, 2, 0, 0], // counts for 1..10
+    "cases": [
+      {
+        "case_id": "case_1",
+        "task": "...",
+        "built_variation": "... the actual prompt executed ...",
+        "output": "...",
+        "score": 7,
+        "strengths": ["..."],
+        "weaknesses": ["..."],
+        "reasoning": "...",
+        "tags": ["happy-path"],
+        "duration_ms": 1234,
+        "error": null
+      }
+    ]
+  }
+-->
+<style>
+  :root {
+    --pe-bg: var(--color-bg, #fafafa);
+    --pe-fg: var(--color-text, #111);
+    --pe-muted: var(--color-text-secondary, #666);
+    --pe-border: var(--color-border, #e5e5e5);
+    --pe-card: var(--color-surface, #fff);
+    --pe-accent: var(--color-accent, #c15f3c);
+    --pe-good: #1e7a3c;
+    --pe-ok: #b57a0e;
+    --pe-bad: #b23a3a;
+  }
+
+  .pe-root {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--pe-fg);
+    background: transparent;
+    padding: 16px 4px;
+    max-width: 920px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  .pe-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--pe-border);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+
+  .pe-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .pe-meta {
+    font-size: 12px;
+    color: var(--pe-muted);
+  }
+
+  .pe-topline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .pe-score-card {
+    background: var(--pe-card);
+    border: 1px solid var(--pe-border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .pe-score-label {
+    font-size: 12px;
+    color: var(--pe-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pe-score-value {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+    margin: 6px 0;
+  }
+
+  .pe-score-sub {
+    font-size: 13px;
+    color: var(--pe-muted);
+  }
+
+  .pe-histogram {
+    background: var(--pe-card);
+    border: 1px solid var(--pe-border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+
+  .pe-histogram h3 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--pe-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pe-bars {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    align-items: end;
+    height: 80px;
+  }
+
+  .pe-bar {
+    background: var(--pe-accent);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: opacity 0.15s;
+  }
+  .pe-bar:hover { opacity: 0.8; }
+  .pe-bar-labels {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    font-size: 10px;
+    color: var(--pe-muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .pe-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .pe-btn {
+    background: var(--pe-accent);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .pe-btn:hover { opacity: 0.9; }
+  .pe-btn.secondary {
+    background: transparent;
+    color: var(--pe-fg);
+    border: 1px solid var(--pe-border);
+  }
+
+  .pe-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 8px;
+    color: var(--pe-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pe-case {
+    background: var(--pe-card);
+    border: 1px solid var(--pe-border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+
+  .pe-case-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .pe-case-head:hover { background: var(--pe-border); }
+
+  .pe-score-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 28px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 13px;
+    color: white;
+    padding: 0 8px;
+  }
+  .pe-score-pill.good { background: var(--pe-good); }
+  .pe-score-pill.ok { background: var(--pe-ok); }
+  .pe-score-pill.bad { background: var(--pe-bad); }
+
+  .pe-case-task {
+    flex: 1;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pe-case-tags {
+    display: flex;
+    gap: 4px;
+  }
+  .pe-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--pe-border);
+    border-radius: 4px;
+    color: var(--pe-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pe-case-body {
+    display: none;
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--pe-border);
+    font-size: 13px;
+  }
+  .pe-case.open .pe-case-body { display: block; }
+
+  .pe-case-body h4 {
+    margin: 12px 0 4px;
+    font-size: 11px;
+    color: var(--pe-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .pe-case-body h4:first-child { margin-top: 0; }
+
+  .pe-pre {
+    background: var(--pe-bg);
+    border: 1px solid var(--pe-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow: auto;
+  }
+
+  .pe-list {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .pe-list li { margin-bottom: 2px; }
+
+  .pe-target-snapshot {
+    margin-top: 28px;
+    padding: 16px;
+    background: var(--pe-card);
+    border: 1px solid var(--pe-border);
+    border-radius: 8px;
+  }
+  .pe-target-snapshot summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--pe-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .pe-target-snapshot .pe-pre {
+    margin-top: 12px;
+    max-height: 420px;
+  }
+
+  @media (max-width: 640px) {
+    .pe-topline { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="pe-root">
+  <div class="pe-header">
+    <div>
+      <h1 class="pe-title" id="pe-target-name">—</h1>
+      <div class="pe-meta" id="pe-meta">—</div>
+    </div>
+    <div class="pe-meta" id="pe-timestamp">—</div>
+  </div>
+
+  <div class="pe-topline">
+    <div class="pe-score-card">
+      <div class="pe-score-label">Mean score</div>
+      <div class="pe-score-value" id="pe-headline-score">—</div>
+      <div class="pe-score-sub" id="pe-headline-sub">—</div>
+    </div>
+    <div class="pe-histogram">
+      <h3>Score distribution</h3>
+      <div class="pe-bars" id="pe-bars"></div>
+      <div class="pe-bar-labels">
+        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+        <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pe-actions">
+    <button class="pe-btn" id="pe-rerun">Re-run eval</button>
+    <button class="pe-btn secondary" id="pe-export">Export JSON</button>
+  </div>
+
+  <div class="pe-section-title">Cases (<span id="pe-case-count">0</span>)</div>
+  <div id="pe-cases"></div>
+
+  <details class="pe-target-snapshot">
+    <summary>Target under test</summary>
+    <div class="pe-pre" id="pe-target-body">—</div>
+  </details>
+</div>
+
+<script>
+  // DATA is injected by the skill before the report is rendered.
+  const DATA = __EVAL_DATA_PLACEHOLDER__;
+
+  function scoreBand(s) {
+    if (s >= 8) return 'good';
+    if (s >= 5) return 'ok';
+    return 'bad';
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function render() {
+    document.getElementById('pe-target-name').textContent =
+      (DATA.target_type === 'skill' ? 'Skill: ' : 'Prompt: ') + (DATA.target_name || 'unnamed');
+
+    document.getElementById('pe-meta').textContent =
+      `${DATA.num_cases} cases · ${DATA.model} · ${DATA.dataset_source}`;
+
+    document.getElementById('pe-timestamp').textContent =
+      new Date(DATA.timestamp).toLocaleString();
+
+    const mean = Number(DATA.headline_score ?? DATA.mean_score ?? 0);
+    document.getElementById('pe-headline-score').textContent = mean.toFixed(2);
+    document.getElementById('pe-headline-sub').textContent =
+      mean >= 8 ? 'Strong — ready to ship' :
+      mean >= 6.5 ? 'Working, with room to improve' :
+      mean >= 5 ? 'Mediocre — iterate before use' :
+      'Weak — needs significant work';
+
+    const dist = DATA.score_distribution || new Array(10).fill(0);
+    const maxCount = Math.max(1, ...dist);
+    const barsEl = document.getElementById('pe-bars');
+    barsEl.innerHTML = '';
+    for (let i = 0; i < 10; i++) {
+      const b = document.createElement('div');
+      b.className = 'pe-bar';
+      b.style.height = `${(dist[i] / maxCount) * 100}%`;
+      b.title = `${dist[i]} case(s) at score ${i + 1}`;
+      barsEl.appendChild(b);
+    }
+
+    document.getElementById('pe-case-count').textContent = (DATA.cases || []).length;
+
+    const sorted = [...(DATA.cases || [])].sort((a, b) => a.score - b.score);
+    const casesEl = document.getElementById('pe-cases');
+    casesEl.innerHTML = '';
+    for (const c of sorted) {
+      const el = document.createElement('div');
+      el.className = 'pe-case';
+      const band = scoreBand(c.score);
+      const tags = (c.tags || []).map(t => `<span class="pe-tag">${escapeHtml(t)}</span>`).join('');
+      el.innerHTML = `
+        <div class="pe-case-head">
+          <span class="pe-score-pill ${band}">${c.score}</span>
+          <span class="pe-case-task">${escapeHtml(c.task)}</span>
+          <span class="pe-case-tags">${tags}</span>
+        </div>
+        <div class="pe-case-body">
+          <h4>Reasoning</h4>
+          <div>${escapeHtml(c.reasoning || '')}</div>
+          <h4>Strengths</h4>
+          <ul class="pe-list">${(c.strengths || []).map(s => `<li>${escapeHtml(s)}</li>`).join('') || '<li><em>—</em></li>'}</ul>
+          <h4>Weaknesses</h4>
+          <ul class="pe-list">${(c.weaknesses || []).map(s => `<li>${escapeHtml(s)}</li>`).join('') || '<li><em>—</em></li>'}</ul>
+          <h4>Output</h4>
+          <div class="pe-pre">${escapeHtml(c.output || '(empty)')}</div>
+          <h4>Prompt executed</h4>
+          <div class="pe-pre">${escapeHtml(c.built_variation || '')}</div>
+          ${c.error ? `<h4>Error</h4><div class="pe-pre">${escapeHtml(c.error)}</div>` : ''}
+        </div>
+      `;
+      el.querySelector('.pe-case-head').addEventListener('click', () => {
+        el.classList.toggle('open');
+      });
+      casesEl.appendChild(el);
+    }
+
+    document.getElementById('pe-target-body').textContent = DATA.target_body || '';
+  }
+
+  function setupActions() {
+    document.getElementById('pe-rerun').addEventListener('click', () => {
+      const msg = `Re-run the eval for ${DATA.target_type} "${DATA.target_name}" using the same dataset.`;
+      // If the host environment exposes a "send prompt" bridge, use it to
+      // re-invoke the eval; otherwise fall back to a chat instruction.
+      if (typeof sendPrompt === 'function') {
+        sendPrompt(msg);
+      } else if (window.host && typeof window.host.sendPrompt === 'function') {
+        window.host.sendPrompt(msg);
+      } else {
+        alert('Re-run hook not wired in this environment — ask in chat: "re-run the eval".');
+      }
+    });
+
+    document.getElementById('pe-export').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `eval-${(DATA.target_name || 'result').replace(/\s+/g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  render();
+  setupActions();
+</script>
