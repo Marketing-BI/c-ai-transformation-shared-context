@@ -6,7 +6,7 @@ description:
   user is reviewing or about to review code, or getting code ready for review. Triggers on: "review this PR",
   "review this MR", "code review", "review my changes", "prepare for review", "request review", "zkontroluj PR",
   "zkontroluj MR", "revize kódu", "připrav kód k review", "projdi můj diff", "review mého kódu",
-  "/common:code-review-standards". These are the review *standards* — not the QA orchestrator.
+  "/dev:code-review-standards". These are the review *standards* — not the QA orchestrator.
 ---
 
 # Code Review Standards

@@ -28,7 +28,7 @@ effort: high
 Orchestrate the `dev` reviewer agents over a defined scope, triage what they find, fix the blockers with the user,
 and leave a report. **Announce at start:** say you are starting the `/dev:code-review` QA pass.
 
-Reviewers apply the org code-review standards — `/common:code-review-standards` — as the baseline; findings are
+Reviewers apply the org code-review standards — `/dev:code-review-standards` — as the baseline; findings are
 triaged against them.
 
 The reviewer agents run outside this context and **read their own rules** (their agent definitions point them at the
