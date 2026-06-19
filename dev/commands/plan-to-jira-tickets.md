@@ -146,4 +146,3 @@ If the user says `preview only` or equivalent: run up to step 9 (batch preview),
 ## Out of Scope
 
 Epic creation, comments, attachments, sprint/board assignment, automatic custom-field detection beyond Story Points (instance-specific field ID), Original Estimate, and `additionalFields`.
-</content>

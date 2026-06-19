@@ -356,5 +356,3 @@ reviewer-resolution problems, push/PR-MR/Jira errors, existing-PR/MR and cancel 
 - Status transitions are out of scope; use `/common:jira-update` if you also want to move the ticket.
 - Use `/common:git-commit` to commit the files Phase 1 changes on the current branch.
 - The reviewer/QA tracker field is **opt-in** — nothing is hardcoded; configure it (or don't) in `references/team-mapping.md`.
-</content>
-</invoke>

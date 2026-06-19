@@ -46,7 +46,7 @@ Every command and skill `description` must list **matched Czech and English** tr
 
 ## Host-agnostic conventions
 
-This repo does not assume any particular git host. Refer to pull/merge requests generically as **PR/MR**, and to "your git host's CLI or web UI" rather than a specific tool. Keep skill and command names host-neutral (`git-pr`, `pr-prep`, `open-pr`). Where a workflow needs the host's CLI or MCP, note that the consuming org wires it in — do not hard-code a specific host.
+This repo does not assume any particular git host. Refer to pull/merge requests generically as **PR/MR**, and to "your git host's CLI or web UI" rather than a specific tool. Keep skill and command names host-neutral (`git-pr`, `open-pr`). Where a workflow needs the host's CLI or MCP, note that the consuming org wires it in — do not hard-code a specific host.
 
 ## Change process
 
