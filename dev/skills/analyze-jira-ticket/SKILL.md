@@ -1,36 +1,39 @@
 ---
 name: analyze-jira-ticket
 description: |
-  Use when the user wants to analyse a Jira ticket against the current codebase before implementation. Loads the
-  ticket (via /common:read-jira-ticket), detects the repository's structure (including monorepo layout) with
-  language-agnostic signals, scans the relevant packages for code touching the ticket's domain, and produces a
-  structured analysis with requirements, existing code, gaps, risks, and open questions. Then asks the user
-  clarifying questions and confirms a plan before handing off to /dev:implement-from-analysis. This skill is
-  **analysis only** — it never implements code.
+  Use when the user wants to analyse a Jira ticket against the current codebase and get observational context
+  (no plan, no questions). Loads the ticket (via /common:read-jira-ticket), detects the repository's structure
+  (including monorepo layout) with language-agnostic signals, scans the relevant packages for code touching the
+  ticket's domain, and produces a **structured context dump** (detected structure, target packages, ticket
+  requirements, related code, observations, backward-compatibility notes). This skill is **load + code scan only**
+  — it does NOT ask clarifying questions, does NOT propose a plan, and does NOT hand off to implement. Planning is
+  owned by `/dev:plan` or by the user (writing a plan from this output).
 
-  English triggers: "analyze ticket", "analyse this ticket", "analyze PROJ-123", "what needs to change for
-  FEAT-456", "prepare implementation plan for OPS-789", "scope this ticket", "/dev:analyze-jira-ticket"
+  English triggers: "analyze ticket", "analyse this ticket", "analyze PROJ-123", "what does PROJ-123 touch in the
+  code", "scan the code for FEAT-456", "gather context for OPS-789", "/dev:analyze-jira-ticket"
 
-  České spouštěče: "analyzuj ticket", "analyzuj tiket", "analyzuj PROJ-123", "co je potřeba změnit pro FEAT-456",
-  "připrav implementační plán pro OPS-789", "naceň tiket", "rozbor tiketu", "/dev:analyze-jira-ticket"
+  České spouštěče: "analyzuj ticket", "analyzuj tiket", "analyzuj PROJ-123", "čeho se PROJ-123 dotýká v kódu",
+  "projdi kód k FEAT-456", "seber kontext k OPS-789", "rozbor tiketu", "/dev:analyze-jira-ticket"
 
   Do NOT apply when: the user already has an approved plan and wants to start implementing (use
-  /dev:implement-from-analysis), or only wants to read the ticket content with no codebase analysis (use
-  /common:read-jira-ticket).
+  /dev:implement-from-analysis), only wants to read the ticket content with no codebase analysis (use
+  /common:read-jira-ticket), or wants a formal implementation plan (use /dev:plan).
 ---
 
-# Analyze Jira Ticket
+# Analyze Jira Ticket — load + code scan + structured context
 
-Prepare a Jira ticket for implementation: load the ticket, understand what's required, scan the codebase to see
-what exists, identify gaps and risks, and produce a plan the user can approve.
+Take a Jira ticket and produce a structured context dump: what the ticket says + which code is involved + what
+observations the codebase yields about implementing it.
 
-This skill is **analysis only**. It never writes production code. The output is a plan plus open questions — ready
-for `/dev:implement-from-analysis` to take over.
+This skill is **observational only**. It does not propose an implementation plan, does not ask the user
+clarifying questions, and does not hand off to any downstream skill. Its output is context for someone (the user,
+or `/dev:plan`, or `/dev:develop`) to make planning decisions from.
 
 ## When NOT to use
 
 - The user wants to start implementing immediately with an approved plan → use `/dev:implement-from-analysis`.
 - The user wants to see only the ticket content (no codebase analysis) → use `/common:read-jira-ticket`.
+- The user wants a formal implementation plan with reviews / estimates → use `/dev:plan`.
 
 ## Ticket key resolution
 
@@ -50,8 +53,8 @@ When resolved from the git branch, state it explicitly:
 ### 1. Load the ticket
 
 Invoke `/common:read-jira-ticket` with the resolved key. This pulls description, comments, attachments (including
-transcripts of video attachments where available), linked tickets, and referenced documentation pages. Do **not**
-re-implement ticket fetching — always delegate.
+transcripts of video attachments, transcribed via an available ASR — handled by read-jira-ticket), linked tickets,
+and referenced documentation pages. Do **not** re-implement ticket fetching — always delegate.
 
 If the read skill fails (missing integration, permission denied, ticket not found), stop and surface the error. Do
 not invent ticket content.
@@ -61,20 +64,18 @@ not invent ticket content.
 Before scanning code, understand the layout. Stay language-agnostic — detect by neutral, cross-stack signals, not by
 assuming any one ecosystem. Detect in this order:
 
-1. **Workspace / monorepo manifests at root** — any tool that declares multiple sub-projects, e.g. a workspace file,
-   a multi-module build descriptor, or a monorepo task-runner config. Common shapes across stacks:
-   - JS/TS: a workspace file or `workspaces` field, an Nx/Turbo/Lerna config
-   - JVM: a multi-module build file (Gradle/Maven aggregator)
-   - .NET: a solution file aggregating multiple projects
-   - Other: any root file that enumerates sub-projects or a task graph across them
+1. **Workspace / monorepo manifests at root** — any tool that declares multiple sub-projects, e.g. a workspace
+   manifest, a multi-module build descriptor, or a monorepo task-runner config. The shape varies by stack (a
+   workspace file, a multi-module build file, a solution file, a task-graph config); treat any root file that
+   enumerates sub-projects or a task graph across them as a monorepo signal.
 2. **Typical monorepo folders**: `apps/`, `packages/`, `services/`, `libs/`, `modules/`, `backend/`, `frontend/`,
    `server/`, `client/`.
 3. **All project/build manifests below root** — locate each sub-project by its own manifest/build file (the
    per-language descriptor that marks a buildable unit). Exclude vendored/build output dirs (dependency caches,
    compiled output, generated artifacts).
-4. **Classify each package** by neutral signals — describe its *role*, not its framework:
-   - **Backend / service**: has a server entry point, HTTP route/controller definitions, or an application bootstrap.
-   - **Frontend / UI**: has a client/app entry point, view/component files, a bundler or app-framework config.
+4. **Classify each package by role** — describe its *role*, not its framework:
+   - **Server / service**: has a server entry point, HTTP route/controller definitions, or an application bootstrap.
+   - **Client / UI**: has a client/app entry point, view/component files, a bundler or app-framework config.
    - **Data / persistence**: holds schema definitions, migrations, or a data-access layer.
    - **Shared library / types / utils**: no server or client entry point — exports reusable code only.
 
@@ -83,9 +84,9 @@ only as observed, not assumed):
 
 ```
 Detected structure: monorepo, multiple sub-projects
-  <path-to-backend>/    backend service        (primary target)
-  <path-to-frontend>/   frontend / UI          (secondary target)
-  <path-to-shared>/     shared types / schemas
+  <path-to-server>/     server / service       (primary target)
+  <path-to-client>/     client / UI            (secondary target)
+  <path-to-shared>/     shared library / types
 ```
 
 If the repo is a single-package project, say so — the analysis then treats the whole repo as one target.
@@ -96,10 +97,10 @@ Map ticket keywords (domain terms, feature names, API paths, data entities, erro
 packages. Flag:
 
 - **Primary target(s)** — packages that clearly own the change.
-- **Likely secondary** — packages that may need coordinated changes (e.g. a shared package for a shared-type rename).
+- **Likely secondary** — packages that may need coordinated changes (e.g. a shared library for a shared-type rename).
 - **Out of scope** — packages unlikely to be touched.
 
-If ambiguous, ask the user before continuing.
+If ambiguous, **note the ambiguity in the output** — do not ask the user (this skill is observational).
 
 ### 4. Scope the code scan
 
@@ -107,95 +108,79 @@ In each primary and likely-secondary package, search for:
 
 - Files matching ticket keywords (route handlers, controllers, services, schemas, views/components, models)
 - Existing patterns the change would extend or touch
-- External integrations referenced in the ticket (any third-party service or API) — find their current abstraction
-  layer in this codebase
+- External services / integrations referenced in the ticket (any third-party service or API) — find their current
+  abstraction layer in this codebase
 - Error messages or log patterns (for bug tickets)
 
 Use `Grep` / `Glob` / `Read` purposefully. Do not read the whole codebase — only files plausibly related to the
-ticket. Hard cap: do not read more than ~20 files. If you are about to exceed that, pause and ask the user to
-narrow the scope.
+ticket. **Hard cap: do not read more than ~20 files.** If you are about to exceed that, stop scanning and note in
+the output that the scan was capped (so the consumer knows the coverage might be incomplete).
 
-### 5. Apply project rules
+### 5. Apply project rules (observational)
 
-The applicable convention/standard skills for this repo (coding standard, practices, documentation, and the
-conditional ones for this project — backend, database, etc.) define what "good" looks like here. **Use them as a
-checklist** when analysing the proposed change.
+The always-rules (coding standard, practices, documentation, monorepo) and the conditional convention skills
+selected for this project (backend, database, etc.) have already auto-loaded via the enabled plugin. **Use them as
+a checklist** when observing the code.
 
-Flag any obvious rule violations the ticket's naive implementation would introduce (e.g. breaking layer boundaries,
-scattering hardcoded constants, weakening type/contract safety, leaking internal errors).
+Note any obvious rule violations a naive implementation would introduce (e.g. weakening type/contract safety,
+breaking layer boundaries, scattering hardcoded constants) — as observations in the output, not as recommendations.
 
-### 6. Produce the structured analysis
+### 6. Produce the structured context dump
 
-Use this exact structure (do not omit sections; use "none found" where applicable):
+Use this exact structure (do not omit sections, use "none found" where applicable). **Output is observational —
+no proposed actions, no questions for the user, no plan.**
 
 ```
 ## Ticket Analysis: <TICKET-KEY>
+
+### Ticket content (from /common:read-jira-ticket)
+<summary line + key facts: title, status, type, description summary, key comments/decisions
+referenced, linked tickets/pages>
 
 ### Detected structure
 <one-line: single-package, monorepo + sub-projects, etc.>
 
 ### Target packages
-- <package>: <why this package is in scope>
+- <package>: <why this package is in scope> (primary | likely secondary | out of scope)
+- <ambiguity notes if applicable>
 
-### What the ticket requires
+### What the ticket asks for (extracted)
 - <bullet per requirement, drawn from description / AC / comments, no speculation>
 
-### What already exists in code
-- `<path>` — <one-line: what it does, how it's relevant>
+### Related code found
+- `<path>` — <one-line: what it does, why it's related>
 - ...
 
-### What's missing / needs to be built
-- <bullet per new component, endpoint, schema, screen, model, etc.>
+### Code observations
+- existing pattern X in `<path>` that a change here would extend
+- external service / integration Y currently wrapped in `<abstraction>`
+- naive implementation would violate rule R (e.g. weaken contract safety at boundary B)
+- ...
 
-### Risks and considerations
-- Technical risks, integration points, concurrency, scale
-- Rule violations the naive approach would introduce
+### Backward-compatibility notes
+- API breaking risk: <e.g. existing endpoint signature, public contract field>
+- Data migration risk: <e.g. column rename, type narrowing>
+- "No backward compatibility concerns observed" if none.
 
-### Backward compatibility
-- API breaking changes, data migrations, dependent systems
-- "No backward compatibility concerns" if none found
-
-### Open questions for the user
-- <specific question that blocks planning — e.g. "Should retries be idempotent at the endpoint or the webhook level?">
+### Scan coverage
+- Files read: <count> / 20-cap
+- Packages scanned: <list>
+- Note if scan was capped or significantly narrowed.
 ```
 
-### 7. Interactive Q&A
-
-Show the analysis. For each open question, ask explicitly. Wait for the user's answers before proposing a plan —
-do not guess defaults for blocking decisions.
-
-### 8. Propose the plan
-
-Once open questions are answered, propose an ordered task list:
-
-```
-## Proposed plan
-
-1. <task> — package: <pkg>, affects: <files/areas>
-2. <task> — ...
-3. <task> — ...
-
-Reviewers to dispatch after implementation: <e.g. backend-architect, security-reviewer — based on scope>
-Tests: <unit / integration / e2e, per task>
-```
-
-Ask: *"Approve this plan? (yes / edit / abort)"*
-
-### 9. Handoff
-
-On approval, state clearly:
-> "Plan approved. Ready for `/dev:implement-from-analysis`. Paste or reference this analysis when invoking it."
-
-Do **not** start implementing. Stop here. The user will invoke the implement skill when ready (often in a separate
-session to keep the token budget clean).
+That's the full output. Skill stops here. **Do not** ask "want a plan?", **do not** propose a task list, **do
+not** invoke any downstream skill.
 
 ## Anti-patterns
 
-- **Do not implement anything.** This skill is analysis-only.
+- **Do not implement anything.** This skill is observational only.
+- **Do not propose a plan.** No ordered task list, no "what's missing — needs to be built" prescriptions. State
+  what's there and what's not as observations; planning is a separate concern (owned by `/dev:plan` or the user).
+- **Do not ask the user clarifying questions.** Ambiguities go into the output as notes, not as questions. The
+  consumer of this output (user / `/dev:plan` / `/dev:develop`) decides whether/how to resolve them.
 - **Do not re-implement ticket fetching.** Always delegate to `/common:read-jira-ticket`.
-- **Do not hallucinate requirements.** Every requirement must be traceable to the ticket (description, AC, comment).
-  If the ticket is ambiguous, ask — do not fill gaps from imagination.
-- **Do not skip Q&A.** Open questions must be answered by the user before planning.
-- **Do not scan the whole repo.** Scope to packages relevant to the ticket; cap file reads; if you need more, ask.
-- **Do not assume a stack.** Detect structure by role-based signals; do not hardcode one language's conventions.
-- **Do not combine analysis and implementation in one output.** Stop at "Plan approved."
+- **Do not hallucinate requirements.** Every extracted requirement must be traceable to the ticket (description,
+  AC, comment). If the ticket is ambiguous, note the ambiguity — don't fill gaps from imagination.
+- **Do not scan the whole repo.** Hard cap ~20 files. If you'd exceed it, stop and note the cap in the output.
+- **Do not hand off to downstream skills.** No "Ready for implement-from-analysis" prompt at the end. The output
+  is the deliverable; what happens next is up to the consumer.
