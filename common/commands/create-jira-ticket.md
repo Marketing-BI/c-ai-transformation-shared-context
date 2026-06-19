@@ -30,7 +30,7 @@ Resolve in order. Prompt the user for anything missing — one question at a tim
 | `summary` | yes | Short title. |
 | `description` | yes | Markdown input; convert to ADF before send. |
 | `assignee` | auto | **Auto-resolved** to current user via `atlassianUserInfo`. Do not ask — always assign to the current user. |
-| `storyPoints` | no | Numeric value. Written to your Jira's Story Points custom field — its ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual Story Points field ID, or discover it from the issue field metadata. Do not assume another instance's ID. For marker syntax and placement rules (used by batch workflows), see `/common:jira-estimates`. |
+| `storyPoints` | no | Numeric value. Written to your Jira's Story Points custom field — its ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual Story Points field ID, or discover it from the issue field metadata. Do not assume another instance's ID. |
 | `priority` | no | e.g. High, Medium, Low. |
 | `labels` | no | Array of strings. |
 | `parent` | no | Epic key for a Story; Story key for a Sub-task. |

@@ -87,7 +87,7 @@ In the mapping confirmation (step 6), explicitly list which bullets were demoted
 
 ## Estimate Detection
 
-**MUST READ** `/common:jira-estimates` for marker syntax (Story Points + hours), placement rules (Story-with-Sub-tasks vs. standalone), and ambiguity handling. The Story Points field ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual Story Points field ID, or discover it from the issue field metadata — do not assume another instance's ID.
+Read each task's Story Point estimate directly from the plan (the plan skill records a numeric estimate per task). Write it to your Jira's Story Points field — the field ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual field ID or discover it from the issue field metadata. For a Story with Sub-tasks, put the estimate on whichever level your team tracks; if the plan's estimate placement is ambiguous, ask the user.
 
 ## Flow
 
