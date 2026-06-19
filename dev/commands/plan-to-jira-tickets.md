@@ -87,7 +87,7 @@ In the mapping confirmation (step 6), explicitly list which bullets were demoted
 
 ## Estimate Detection
 
-**MUST READ** `/common:jira-estimates` for marker syntax (Story Points + hours), placement rules (Story-with-Sub-tasks vs. standalone), and ambiguity handling. The Story Points field ID is `customfield_10033` (adjust if your Jira project uses a different field).
+**MUST READ** `/common:jira-estimates` for marker syntax (Story Points + hours), placement rules (Story-with-Sub-tasks vs. standalone), and ambiguity handling. The Story Points field ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual Story Points field ID, or discover it from the issue field metadata — do not assume another instance's ID.
 
 ## Flow
 
@@ -115,7 +115,7 @@ In the mapping confirmation (step 6), explicitly list which bullets were demoted
 8. **Fill remaining fields.** For each ticket:
     - Description = relevant plan section (Story = section body; Sub-task = bullet + its parent context).
     - Apply assignee (current user), labels/priority from step 3.
-    - Story Points via `customfield_10033` (only on Sub-tasks, or on Stories without Sub-tasks).
+    - Story Points via your Jira's Story Points custom field (its ID is instance-specific, e.g. `customfield_XXXXX`; configure your project's actual field ID or discover it from the issue field metadata — do not assume another instance's ID). Apply only on Sub-tasks, or on Stories without Sub-tasks.
 9. **Batch preview.** Render a numbered list of every ticket in create order with all resolved fields. Format per ticket: `N. [Type] <new> → <summary>` with compact field lines (SP, OE, parent). Prompt: `create / skip 3,7 / edit 5 / abort`.
 10. **Create in order via `/common:create-jira-ticket`.** For each ticket in the approved batch, follow the `/common:create-jira-ticket` flow using the resolved fields from the batch preview. Because the batch preview in step 9 already served as confirmation, invoke `/common:create-jira-ticket` in **batch mode** (skip its per-ticket preview gate — see `/common:create-jira-ticket`'s "Batch Mode" section). All fields needed (cloudId, project, issueType, summary, description, assignee, priority, labels, parent, additionalFields incl. estimate fields) are passed through from the batch.
     - Stories first, each with `parent` = Epic key → capture keys.
@@ -145,5 +145,5 @@ If the user says `preview only` or equivalent: run up to step 9 (batch preview),
 
 ## Out of Scope
 
-Epic creation, comments, attachments, sprint/board assignment, automatic custom-field detection beyond Story Points (`customfield_10033`), Original Estimate, and `additionalFields`.
+Epic creation, comments, attachments, sprint/board assignment, automatic custom-field detection beyond Story Points (instance-specific field ID), Original Estimate, and `additionalFields`.
 </content>
