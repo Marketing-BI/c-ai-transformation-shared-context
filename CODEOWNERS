@@ -1,0 +1,5 @@
+# Code owners for the shared AI context repo. Replace placeholder groups with your org's teams.
+*            @«your-org»/ai-context-maintainers
+/common/     @«your-org»/ai-context-maintainers
+/dev/        @«your-org»/dev-leads
+/business/   @«your-org»/business-leads

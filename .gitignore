@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Local-only brainstorming specs / design docs — never committed
+docs/superpowers/

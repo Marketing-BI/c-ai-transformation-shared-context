@@ -1,0 +1,9 @@
+{
+  "name": "shared-ai-context",
+  "owner": { "name": "«your-org»" },
+  "plugins": [
+    { "name": "common",  "source": "./common",  "description": "Org-wide standards (behavior + coding rules auto-loaded via a SessionStart hook), shared slash commands (git commit/PR, Jira ticket creation), Jira & Confluence skills, the context-pull agent, code-review standards, and the prompt/skill evaluation pipeline." },
+    { "name": "dev",      "source": "./dev",      "description": "Language-agnostic software-delivery context: coding standards, conditional convention skills (backend, database, docker, testing), the Jira→analysis→implementation→review→PR workflow, planning/solution-doc skills, project CLAUDE.md scaffolding, and independent reviewer agents." },
+    { "name": "business", "source": "./business", "description": "Business context: generic CRM operating discipline (crm-ops), interactive Statement of Work and Business Brief generators, ICP/customer-intelligence research (prospector), and discovery/sales-call coaching." }
+  ]
+}
