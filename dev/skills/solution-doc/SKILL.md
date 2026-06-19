@@ -245,8 +245,8 @@ section — never buried inside other sections.
 Before publishing, dispatch the **`dev:solution-architect`** sub-agent to review the draft. The drafter
 self-auditing is weak — independent eyes catch what the drafter normalized.
 
-**How:** Use the Agent tool with `subagent_type: "dev:solution-architect"`. The agent's persona is baked into its
-definition, so do NOT load any persona file yourself.
+**How:** Use the Agent tool with `subagent_type: "dev:solution-architect"`. Each agent's review lens is baked into its
+definition — do not pass extra persona or role instructions to it.
 
 Pass to the agent:
 

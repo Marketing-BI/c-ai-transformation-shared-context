@@ -176,6 +176,18 @@ If no such checklist exists, use the section structure below (sections 1–9) as
 plan-quality discipline in this skill (no code, feature-based decomposition, Fibonacci estimates, edge-case coverage,
 multi-agent review, scope triage) always applies.
 
+## Default Plan Structure (sections 1–9)
+
+1. **Summary** — what this plan delivers, in 2–3 sentences.
+2. **Scope & Non-Goals** — what's in, what's explicitly out.
+3. **Architecture Context** — the relevant baseline + Decision Records (by DR-ID) the plan must honor.
+4. **Tasks** — feature-based decomposition, each task with a Fibonacci story-point estimate and acceptance criteria.
+5. **Dependencies & Sequencing** — inter-task and external dependencies, build order.
+6. **Edge Cases & Business-Case Coverage** — discovered edge cases and how each requirement/journey is covered.
+7. **Risks & Mitigations** — technical and delivery risks with mitigations.
+8. **Open Questions** — unresolved items needing a decision, with owners.
+9. **Out-of-Scope / Follow-Ups** — deferred work and future tickets.
+
 ## Plan Detail Level
 
 The plan is a **high-level architectural overview**. Concrete implementation (exact field types, DTO shapes, query
@@ -277,8 +289,8 @@ SP. Example: 2 SP (4h) + 2 SP (4h) = 8h → 3 SP. The plan summary must show bot
 **Reviewer output feeds the Review Triage step (below) — it is advisory input, never auto-merged into the plan.**
 
 **How:** Dispatch 5 sub-agents IN PARALLEL (single message, 5 `Agent` tool calls). Use the dedicated `dev` reviewer
-agents via the `subagent_type` parameter — each agent's review lens is baked into its agent definition, so do NOT load
-any persona file yourself.
+agents via the `subagent_type` parameter — each agent's review lens is baked into its definition — do not pass extra
+persona or role instructions to it.
 
 Each agent receives:
 
