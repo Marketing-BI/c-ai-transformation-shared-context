@@ -2,8 +2,8 @@
 
 Concrete fill-in skeleton for step 5. The **title and description conventions are owned by**
 [`/common:git-pr`](../../../../common/commands/git-pr.md) — follow it for the title format and the base body structure.
-This file does not redefine those conventions; it only maps each section to its source and adds the project-specific
-`Version`, `Environment variables`, and `Jira` fields on top of the `/common:git-pr` template.
+This file does not redefine those conventions; it only maps each section to its source and adds the open-pr-specific
+`Version` and `Environment variables` sections. The Jira ticket link lives under git-pr's `Related` section.
 
 `<site>` throughout is the resource `url` resolved in step 0 (setup), not a hardcoded host.
 
@@ -23,12 +23,17 @@ skipped step 1), fall back to a phrase derived from the diff + commit log only.
 
 ## Body
 
-Body structure follows `/common:git-pr`, extended with `Version`, `Environment variables`, and `Jira` fields:
+This skeleton follows `/common:git-pr`'s section structure (Summary / Changes / Testing / Related) and adds `Version`
+and `Environment variables` sections produced by Phase 1. The Jira ticket link lives under git-pr's `Related` section.
 
 ```markdown
 ## Summary
 
 <one-paragraph summary of what changed and why>
+
+## Changes
+
+<detailed list of changes, grouped logically>
 
 ## Version
 
@@ -38,20 +43,19 @@ Body structure follows `/common:git-pr`, extended with `Version`, `Environment v
 
 <list of new env vars, or "None">
 
-## Jira
-
-[<TICKET>](https://<site>/browse/<TICKET>)
-
-## Test plan
+## Testing
 
 - [ ] <fill in>
+
+## Related
+
+[<TICKET>](https://<site>/browse/<TICKET>)
 ```
 
-`Summary`, `Jira`, and `Test plan` are always present.
-
-- **`Environment variables`** is always included; its value is "None" when no new env vars were found.
-- **`Version`** is included only when there is a bump to report. Standalone (Phase 1 skipped) with no bump: omit the
-  section rather than print a placeholder. Phase 2 never bumps the version itself.
+`Summary`, `Changes`, `Testing`, and `Related` (with the Jira link) are always present — they are git-pr's canonical
+sections. `Environment variables` is always included; its value is "None" when no new env vars were found.
+`Version` is included only when there is a bump to report. Standalone (Phase 1 skipped) with no bump: omit the
+section rather than print a placeholder. Phase 2 never bumps the version itself.
 
 ## Section sources
 
@@ -61,10 +65,11 @@ skipped (e.g. someone ran Phase 2 standalone), derive them read-only from the br
 | Section               | From Phase 1 (steps P1–P5)            | Phase 1 skipped (read-only from branch)                                                                          |
 | --------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Summary               | The step-P5 change summary            | Paraphrase of `jiraSummary` + `jiraDescription` (step 1) combined with the diff / commit log. Never literal "TBD". |
+| Changes               | The step-P5 change breakdown          | Derive from `git diff <default-branch>...HEAD --stat` + commit log. Group logically.                            |
 | Version               | `old → new` from step P2              | If the branch diff changed the project's version file, show `old → new`; otherwise omit the section. Never bump the version here. |
 | Environment variables | The env-var list from step P1 (or "None") | Scan the branch diff (`git diff <default-branch>...HEAD`) for newly introduced env vars (new env reads, new config entries, new env-derived constants) and list them, or "None". Read-only: do **not** propagate to the env-example file / container compose file / README. |
-| Jira                  | Resolved ticket key from step 1       | Same                                                                                                            |
-| Test plan             | Leave the checkbox for the reviewer   | Same                                                                                                            |
+| Testing               | Leave the checkbox for the reviewer   | Same                                                                                                            |
+| Related (Jira link)   | Resolved ticket key from step 1       | Same                                                                                                            |
 
 Phase 2 derives env vars and version **read-only**, purely to populate the PR/MR body. The worktree mutations
 (propagating env vars to the env-example file / container compose file / README and bumping the version file) belong to

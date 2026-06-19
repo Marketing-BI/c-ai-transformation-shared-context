@@ -324,24 +324,13 @@ Do **not** hand-roll a separate review here.
 branch; Model B: base = umbrella, or the preceding PR/MR head if stacked), plus the plan file path and the source
 (Confluence URL / local doc path / Jira key + summary) as context.
 
-**Action on findings** (`/dev:code-review` triages and drives these; this is the contract `develop` enforces):
+**Contract `develop` enforces on the outcome** (the gate before Step 8):
 
-| Finding                                          | Action                                                                                                     |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| **Critical Issue** (any reviewer)                | **Must fix before push.** Fix as an additional commit on the current branch.                               |
-| **Contract gap** between layers (e.g. UI↔API)    | Treat as Critical — **must fix before push** (or document an explicit follow-up agreed with the user).     |
-| **Recommendation** (any reviewer)                | Decide **with the user**: fix now, or defer to a follow-up ticket. Do not silently drop or silently apply. |
-| **Client Gaps / Open Questions** (business-case) | **Surface to the user, do not invent answers.** Report at the end of the consolidation.                    |
+- **Fix Criticals before any push.** Do not proceed to Step 8 until all Critical Issues and contract gaps are resolved.
+- **Decide Recommendations with the user** — fix now or defer to a follow-up ticket; do not silently drop or apply.
+- **Surface Client Gaps / Open Questions** to the user; do not invent answers.
 
-For each Critical, agree the fix with the user, apply it, then **re-review only the affected area** for a second pass to
-confirm the fix is correct. Don't re-run reviewers whose area didn't change.
-
-**Before proceeding to Step 8**, present a consolidated review summary to the user, including:
-
-- The per-reviewer verdict (Approved / Approved with fixes / Needs rework) and which agents ran.
-- The list of Critical Issues + contract gaps fixed (with commit hashes).
-- The Recommendations and the user's decision on each (fixed now / deferred to which ticket).
-- The Client Gaps / Open Questions raised by the business-case evaluator (informational — for the user to resolve).
+`/dev:code-review` drives the triage and fix loop internally — do not re-describe those steps here.
 
 ---
 

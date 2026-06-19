@@ -21,9 +21,9 @@ description: |
 
 # Implement from Analysis
 
-Execute an approved implementation plan with the user, applying a disciplined test-first workflow and dispatching
-reviewer agents for validation. This skill is the orchestrator — it does not re-analyse, does not re-plan, and does
-not proceed without approval at every major checkpoint.
+Execute an approved implementation plan with the user, applying a disciplined test-first workflow and delegating
+post-implementation review to `/dev:code-review`. This skill is the orchestrator — it does not re-analyse, does not
+re-plan, and does not proceed without approval at every major checkpoint.
 
 > **Optional enhancement:** if the `superpowers` plugin is installed, you can lean on its skills (`writing-plans`,
 > `test-driven-development`, `subagent-driven-development`, `verification-before-completion`) to drive each step.
