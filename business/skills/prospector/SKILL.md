@@ -8,8 +8,8 @@ description: >
   language. If the request names a specific call, prospect, or meeting, defer to `/business:sales-coach`, NOT this
   skill. Triggers (only when NO specific named call/person is mentioned): "ICP research", "research the ICP for X",
   "who buys X and why", "audience research for X", "pain-point research", "buyer persona for X", "where do my buyers
-  hang out", "messaging research", "vyzkum ICP", "pruzkum cilove skupiny", "kdo kupuje X a proc", "vyzkum bolesti
-  zakazniku", "persona kupujiciho", "vyzkum pro messaging", "/business:prospector".
+  hang out", "messaging research", "výzkum ICP", "průzkum cílové skupiny", "kdo kupuje X a proč", "výzkum bolestí
+  zákazníků", "persona kupujícího", "výzkum pro messaging", "/business:prospector".
 ---
 
 # Customer-Intelligence / ICP Research

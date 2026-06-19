@@ -99,3 +99,5 @@ Tell the user:
 - **Effort estimation** - if the user needs a detailed estimate, suggest the relevant estimator first; its output
   can inform Delivery and Outcomes.
 - **`/common:branding-docx`** - runs next, converts this skill's markdown into the branded deliverable.
+- **`/business:brief`** - the Business Brief is the analytical groundwork that precedes/refines this SOW; if the
+  engagement is still in discovery, run `/business:brief` first.

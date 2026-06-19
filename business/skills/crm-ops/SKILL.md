@@ -39,7 +39,8 @@ inspecting the live schema through the MCP/API, because a stale reference causes
 
 ## Reasoning order
 
-Before calling the CRM, run this sequence every time:
+Before calling the CRM, run this sequence every time. If the request is tied to a project or gate check, load
+ambient context first via `/common:context-pull` before proceeding.
 
 1. **Identify the object(s)** the user is touching. If the request implies more than one (e.g. "new client" →
    Company + Contact + maybe Deal), enumerate them all.
@@ -120,6 +121,13 @@ After any successful create or update, tell the user, concisely:
 3. **Any follow-up the user owes** - e.g. "communicate the project code to the delivery team so their time syncs",
    "upload the signed contract to your document store", "move the invoice to *requested* when ready to bill". Make
    ownership of the next step explicit.
+
+## Integration
+
+- **`/common:context-pull`** — load ambient project/gate context before a CRM operation when the request is tied to
+  an active project or deal.
+- **`/common:jira-update`** — after a CRM change that warrants an issue-tracker update (e.g. deal won, project
+  created, contract signed), use `/common:jira-update` to keep the issue tracker in sync.
 
 ## Pre-flight checklist
 

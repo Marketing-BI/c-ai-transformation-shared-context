@@ -8,8 +8,8 @@ description: >
   pitches, not quantifying pain in money. Three modes: PRE (pre-call brief), VIDEO (personalized pre-call video
   script), POST (call debrief + scorecard + follow-up email drafts). Triggers: "sales coach", "prep me for X call",
   "prep the X discovery call", "video for X", "pre-call video for X", "debrief the X call", "coach me on the call with
-  X", "score my last call", "pre-call brief for X", "priprav me na hovor s X", "priprav discovery hovor", "video pro
-  X", "rozbor hovoru s X", "okomentuj muj hovor s X", "ohodnot muj posledni hovor", "/business:sales-coach".
+  X", "score my last call", "pre-call brief for X", "připrav mě na hovor s X", "připrav discovery hovor", "video pro
+  X", "rozbor hovoru s X", "okomentuj můj hovor s X", "ohodnoť můj poslední hovor", "/business:sales-coach".
 ---
 
 # Sales Coach
