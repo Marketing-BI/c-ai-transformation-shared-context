@@ -2,9 +2,9 @@
 name: backend-conventions
 description: |
   Auto-load when working on server-side or API code — controllers, services, handlers, route/endpoint
-  definitions, middleware, guards, filters, interceptors, request/response DTOs, health-check configuration,
-  or a server entry point. Also applies to any code whose primary responsibility is an HTTP boundary,
-  module wiring, or application-layer orchestration.
+  definitions, middleware, authentication/authorization policies, exception handlers, request/response DTOs,
+  health-check configuration, or a server entry point. Also applies to any code whose primary responsibility
+  is an HTTP boundary, module wiring, or application-layer orchestration.
 
   English triggers: "backend", "API endpoint", "service layer", "controller", "handler", "route",
   "middleware", "request validation", "error filter", "health check", "rate limit", "caching layer",
@@ -34,7 +34,7 @@ description: |
 
 - Use plural nouns with dashes: `/users`, `/project-users/:id`, `/plan-templates`.
 - Action defined by HTTP method: GET (read), POST (create), PUT (replace whole resource), PATCH (partial update), DELETE (remove).
-- Query parameters for filtering, sorting, pagination: `?status=active&sort=-createdAt&page=2`.
+- Query parameters for filtering, sorting, pagination: `?status=active&sort=-created_at&page=2`.
 
 ## API Versioning
 

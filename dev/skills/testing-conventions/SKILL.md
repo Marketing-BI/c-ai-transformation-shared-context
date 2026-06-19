@@ -48,7 +48,7 @@ description: |
 
 ## Testing Discipline
 
-- Ban `.skip` and `.only` in committed code. Use `.todo` for planned tests; enforce the ban in CI.
+- Ban test-skip and exclusive-run markers in committed code (e.g. `.skip`/`.only` in xUnit-style runners, `@Disabled` in JUnit); use a planned/todo marker instead; enforce in CI.
 
 ## Test Organization
 
@@ -60,10 +60,10 @@ description: |
 ## Test Isolation
 
 - **Data store**: use a dedicated test data store with transaction rollback per test. Do not mock the data store or repository layer in service-level integration tests.
-- **Cache**: flush test keys in `beforeEach`; use namespaced keys to prevent cross-test pollution.
+- **Cache**: flush test keys in a per-test setup hook (e.g. `beforeEach` in xUnit-style runners, `@BeforeEach` in JUnit); use namespaced keys to prevent cross-test pollution.
 - **Time**: use fake/controlled timers for time-dependent logic.
 - **IDs**: override ID generation with deterministic sequences for reproducible tests.
-- **Mock cleanup**: clear all mocks globally in `afterEach` to prevent test pollution.
+- **Mock cleanup**: clear all mocks globally in a per-test teardown hook (e.g. `afterEach`) to prevent test pollution.
 - **Parallel safety**: tests must be independent — no shared mutable state between tests.
 - Each test creates its own isolated scope (e.g., tenant context) — never share state between tests.
 - Never use real names, email addresses, or PII in test fixtures.
@@ -73,7 +73,7 @@ description: |
 - **Builder/factory pattern**: fluent API for constructing complex test entities with sensible defaults.
 - **Factory composition**: create related entities together through factories.
 - **Deterministic seeding**: seed random data generators for reproducible test data.
-- **Cleanup**: data-store transactions roll back automatically; cache keys are flushed in `afterEach`.
+- **Cleanup**: data-store transactions roll back automatically; cache keys are flushed in the per-test teardown hook (e.g. `afterEach`).
 
 ## Unit Tests
 

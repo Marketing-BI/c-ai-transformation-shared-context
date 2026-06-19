@@ -10,7 +10,7 @@ description: |
   "CTE", "join", "/dev:database-conventions"
 
   České spouštěče: "databáze", "schéma", "migrace", "SQL dotaz", "repozitář", "index", "omezení",
-  "datový model", "seedovací soubor", "transakce", "CTE", "join", "řádková bezpečnost",
+  "entita", "datový model", "seedovací soubor", "transakce", "CTE", "join", "řádková bezpečnost",
   "/dev:database-conventions"
 
   Do NOT apply when: working on frontend components or UI code, reading a schema only to understand
@@ -31,14 +31,14 @@ description: |
 - Use a consistent primary key strategy — document the choice in project CLAUDE.md.
 - Use timezone-aware timestamp types for all timestamp columns (never naive/local timestamps).
 - Use unbounded text types over length-limited strings unless a hard length constraint is required.
-- Use a structured/semi-structured column type (e.g., `jsonb`) for semi-structured data, but prefer normalized columns for fields that are queried.
+- Use a JSON or binary-JSON column type (depending on your database) for semi-structured data, but prefer normalized columns for fields that are queried.
 - Represent enumerated domains as database enum types — never hardcode value lists in application code.
 - Add NOT NULL constraints explicitly; add foreign keys and indexes to enforce referential integrity.
 
 ### Index Selection
 
-- B-tree (default) — point lookups, equality, range queries.
-- BRIN — only for naturally ordered columns (e.g., `created_at` on append-only tables).
+- Default index (B-tree in most databases) — point lookups, equality, range queries.
+- Block-range / clustered index (e.g. PostgreSQL BRIN) — only for naturally ordered, append-only columns like `created_at`; confirm your database supports it.
 
 ## Transactions
 
@@ -130,7 +130,7 @@ WITH my_cte AS (
 ### Aggregations
 
 - List non-aggregated columns first, then aggregated columns.
-- Never use `GROUP BY ALL` — list columns explicitly or use positional references (`GROUP BY 1, 2, 3`).
+- Always list GROUP BY columns explicitly or use positional references (`GROUP BY 1, 2, 3`); never rely on auto-group shorthands.
 
 ### Preferred Patterns
 
@@ -140,7 +140,7 @@ WITH my_cte AS (
 - `CAST(x AS type)` for explicit type conversion
 - `CASE WHEN ... END` for conditional logic (portable across SQL dialects)
 - Always qualify column references with table/CTE in multi-table queries
-- `DATE_TRUNC` for truncation; `EXTRACT` for date parts; avoid inline date arithmetic
+- A date-truncation function (e.g. `DATE_TRUNC` in PostgreSQL/BigQuery — check your database's equivalent) for truncation; `EXTRACT` (ANSI standard) for date parts; avoid inline date arithmetic
 
 ### Commenting
 
