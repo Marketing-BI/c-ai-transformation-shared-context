@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook: inject this plugin's always-on rules as additional context.
 set -euo pipefail
-RULES_DIR="${CLAUDE_PLUGIN_ROOT}/rules/always"
+RULES_DIR="${CLAUDE_PLUGIN_ROOT}/rules"
 [ -d "$RULES_DIR" ] || exit 0
 content="$(cat "$RULES_DIR"/*.md 2>/dev/null || true)"
 [ -n "$content" ] || exit 0

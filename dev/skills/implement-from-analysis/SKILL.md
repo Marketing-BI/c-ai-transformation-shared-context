@@ -125,7 +125,7 @@ before implementation starts.
 ### Step 4 — Implement task by task (test-first: red → green)
 
 Execute the plan task by task. Apply the **scope discipline** — *Think-before-coding / Simplicity-first /
-Surgical-changes / Goal-driven execution* — from the always-on **practices** rule (`dev/rules/always/practices.md`).
+Surgical-changes / Goal-driven execution* — from the always-on **practices** rule (`dev/rules/practices.md`).
 Don't restate it here; honour it. The default is restraint, not expansion: touch only what the task requires, choose
 the simplest solution that fully solves the problem, and stop when the stated goal is met.
 

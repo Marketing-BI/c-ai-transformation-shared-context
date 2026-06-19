@@ -21,8 +21,8 @@ The marketplace itself is declared in `.claude-plugin/marketplace.json`, which l
 
 Rules come in two kinds:
 
-- **Always-on rules** live in `<plugin>/rules/always/*.md`. They are assembled and injected into **every** session by the plugin's `SessionStart` hook — no `CLAUDE.md` wiring, no manual import. Keep them minimal and high-impact, since they cost context in every session. The file body *is* the rule; no special header.
-- **Conditional conventions** are authored as **skills** (see below), not as files a `CLAUDE.md` links. Each carries an `**Apply when:**`-style trigger in its `description` so Claude loads it on demand only when the context matches.
+- **Always-on rules** live directly in `<plugin>/rules/*.md` (flat — no sub-folders). They are assembled and injected into **every** session by the plugin's `SessionStart` hook — no `CLAUDE.md` wiring, no manual import. Keep them minimal and high-impact, since they cost context in every session. The file body *is* the rule; no special header.
+- **Conditional conventions** are authored as **skills** (see below), not as rule files. Each carries an `**Apply when:**`-style trigger in its `description` so Claude loads it on demand only when the context matches.
 
 ### Writing an `Apply when:` trigger
 
