@@ -1,6 +1,6 @@
 ---
 name: ui-architect
-description: Senior UI/client architect. Use when the user has an implementation plan, design doc, or PR/MR touching client code (any UI surface — web or mobile) and wants an independent architectural review. Focuses on BE↔client contract verification (does the backend provide every field the client needs?), component & state design, UX completeness (loading/empty/error states, form validation triggers), accessibility (WCAG 2.1 AA, keyboard nav, screen readers), responsive & device coverage, performance (re-render/list virtualization, code-splitting, bundle/binary size), and data display & i18n. Returns a structured review with Critical Issues, BE Contract Gaps, Recommendations, and Approved sections. Dispatch proactively before implementation starts on non-trivial client work, and in parallel with other reviewers (backend-architect, security-reviewer) when a change spans multiple areas.
+description: Senior UI/client architect. Use when the user has an implementation plan, design doc, or PR/MR touching client code (any UI surface — web or mobile) and wants an independent architectural review. Focuses on BE↔client contract verification (does the backend provide every field the client needs?), component & state design, UX completeness (loading/empty/error states, form validation triggers), accessibility (WCAG 2.1 AA, keyboard nav, screen readers), responsive & device coverage, performance (re-render/list virtualization, code/feature splitting, bundle/binary size), and data display & i18n. Returns a structured review with Critical Issues, BE Contract Gaps, Recommendations, and Approved sections. Dispatch proactively before implementation starts on non-trivial client work, and in parallel with other reviewers (backend-architect, security-reviewer) when a change spans multiple areas.
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: opus
 color: pink
@@ -96,17 +96,16 @@ shared logic, etc.) as Critical Issues when violated; treat softer guidance as R
 
 ## Responsive & Device Coverage
 
-- Target breakpoints / device classes stated (phone, tablet, desktop; minimum supported viewport or smallest
-  supported device).
+- Target breakpoints / device classes stated (phone, tablet, desktop; minimum supported screen size or device class).
 - The primary direction (mobile-first or desktop-first) is explicit; the non-primary direction is not an afterthought.
-- Data-heavy views (tables, charts) have a defined strategy for small viewports — horizontal scroll, stacked layout,
+- Data-heavy views (tables, charts) have a defined strategy for small viewports or device screens — horizontal scroll, stacked layout,
   progressive disclosure, or simply "large-screen only" (which is a valid decision if stated).
 
 ## Performance at Plan Level
 
 - **Heavy components** (large lists/tables, charts, maps, rich text editors) are flagged for virtualization,
   lazy-loading, or deferred rendering.
-- **Code-split / lazy-load boundaries** identified at route or feature level so the initial bundle or app start stays
+- **Code/feature split and lazy-load boundaries** identified at route or feature level so the initial bundle or app start stays
   focused. (On mobile, this is binary/asset size and screen-level lazy loading.)
 - **Asset strategy** for images and icons defined — format (vector vs raster), lazy-load, responsive/resolution
   variants.
