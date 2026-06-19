@@ -19,7 +19,7 @@ find them — they typically live under `dev/rules/`, either vendored in the pro
 - Always-on: the coding standard (naming, immutability, single source of truth, explicit contracts), engineering
   practices (env config, architecture boundaries), and monorepo/workspace conventions (package boundaries, for
   cross-package issues).
-- Org-wide: behavior conventions (scope discipline).
+- Org-wide: behavior conventions (scope discipline) and the org code-review standards (`/common:code-review-standards`).
 
 Treat clear rule violations as Critical or Recommendation by impact; do not invent rules the standard doesn't state.
 The language-specific rules — type strictness, absence handling, async discipline — live in the coding standard; defer

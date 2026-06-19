@@ -3,11 +3,10 @@ name: implement-from-analysis
 description: |
   Use when the user has an approved plan from /dev:analyze-jira-ticket (or an equivalent hand-written plan) and
   wants to implement it. Orchestrates a disciplined plan → test-first (red/green) → implement → verify workflow
-  while the user stays in the driver's seat for approvals and course corrections. At the end dispatches the
-  relevant reviewer agents in parallel (subagent_type "dev:backend-architect" and any others relevant to the
-  change) for fresh-eyes validation, then creates LOCAL commits via /common:git-commit. **Never pushes to the
-  remote and never opens a pull/merge request** — push and PR/MR are user decisions, done manually after review.
-  Expects a plan as input — will not invent one.
+  while the user stays in the driver's seat for approvals and course corrections. At the end delegates to
+  /dev:code-review for the parallel reviewer-agent dispatch, triage, and user-gated fixes. Creates LOCAL commits
+  via /common:git-commit. **Never pushes to the remote and never opens a pull/merge request** — push and PR/MR
+  are user decisions, done manually after review. Expects a plan as input — will not invent one.
 
   English triggers: "implement this plan", "implement from analysis", "implement PROJ-123", "proceed with
   implementation", "build out the approved plan", "/dev:implement-from-analysis"
@@ -109,29 +108,19 @@ constraints. Apply them wherever they intersect the change.
 If a task has multiple reasonable approaches with trade-offs, state them and ask the user. Do not silently pick one.
 Implementation is a conversation, not a monologue.
 
-### 7. Dispatch reviewer agents in parallel
+### 7. Code review — delegate to `/dev:code-review`
 
-After all tasks are implemented and tests pass, dispatch the relevant reviewer agents **in parallel** (a single
-message with multiple `Agent` tool calls). Use `subagent_type` with the plugin-qualified `dev:` name. Pick based on
-what the change actually touched:
+After all tasks are implemented and tests pass, invoke `/dev:code-review` (scope: `branch` or `uncommitted`, as
+appropriate). `/dev:code-review` owns the parallel reviewer-agent dispatch (selecting agents by what actually
+changed), the triage gate, and the user-gated fix loop — do not re-implement that logic here.
 
-- Backend code → `subagent_type: "dev:backend-architect"`
-- Frontend / UI code → `subagent_type: "dev:ui-architect"`
-- Schema / migrations / data access → `subagent_type: "dev:performance-reviewer"` (and `dev:backend-architect`)
-- Auth, secrets, external boundaries, PII → `subagent_type: "dev:security-reviewer"`
-- Error handling, logging, fallbacks → `subagent_type: "dev:error-handling-reviewer"`
-- New/changed logic that should be tested → `subagent_type: "dev:test-coverage-reviewer"`
-- Public API / schema / DTOs → `subagent_type: "dev:api-doc-reviewer"`
-- General line-level bug & quality sweep → `subagent_type: "dev:code-reviewer"`
-
-Each reviewer returns a structured report (Critical / Recommendations / Approved). Present the aggregate to the user.
+Pass a short context note so the reviewers know this is a post-implementation pass for `<TICKET-KEY>`.
 
 ### 8. Iterate on review findings
 
-For each **Critical Issue** raised by any reviewer, agree with the user on a fix and apply it (return to step 4 for
-that task). Then re-dispatch only the affected reviewers for a second pass.
-
-For **Recommendations**, decide with the user which to address now vs. defer to a follow-up ticket.
+`/dev:code-review` drives the fix loop. For **Critical Issues** it will re-dispatch only the affected reviewer
+for a second pass, agree fixes with you, and apply them. For **Recommendations** it will decide with you what to
+address now vs. defer. This skill resumes after `/dev:code-review` reports its outcome.
 
 ### 9. Final verification
 
@@ -155,8 +144,8 @@ Announce completion clearly:
 > "Implementation of `<TICKET-KEY>` complete. N local commits ready on branch `<branch>`. N critical review findings
 > resolved, M recommendations deferred (tracked in <ticket>).
 >
-> Next steps (user's choice): review `git log`, then run `/dev:pr-prep` followed by `/dev:open-pr` when ready, or
-> push manually and open a PR/MR on your git host."
+> Next steps (user's choice): review `git log`, then run `/dev:open-pr` when ready (or `/dev:open-pr prep-only`
+> for just the pre-flight checklist), or push manually and open a PR/MR on your git host."
 
 Stop. Do not push, do not open the PR/MR, do not auto-merge, do not close the ticket, do not move it in Jira. Those
 are user decisions.
