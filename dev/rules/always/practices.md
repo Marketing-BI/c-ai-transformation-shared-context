@@ -22,6 +22,13 @@
 - Never read raw environment values throughout the code — access configuration through a single typed, validated
   accessor.
 
+## Scope Discipline
+
+- **Think before coding** — understand the problem and the existing code first; know what you are changing and why before writing a line.
+- **Simplicity first** — choose the simplest solution that fully solves the problem; don't add abstractions or generality you don't need yet (YAGNI).
+- **Surgical changes** — touch only what the task requires; don't refactor, rename, or reformat unrelated code.
+- **Goal-driven execution** — keep the stated goal in view and stop when it is met; don't gold-plate or expand scope unprompted.
+
 ## Architecture Boundaries
 
 - Keep layer boundaries intact and one-directional (for example, transport → application/service → data access); a
