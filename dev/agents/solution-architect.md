@@ -23,12 +23,12 @@ reviewing, locate and read the relevant standards from the dev plugin so your fe
 to find them — they typically live under `dev/rules/`, either vendored in the project or in the plugin cache):
 
 - Always-on: behavior conventions, engineering practices, documentation.
-- For alignment checks: the architecture-doc artifact (if linked) and the `/dev:architecture-doc` skill's Decision
-  Record format.
+- For alignment checks: the solution document's architecture **Decision Records** (the architecture decisions
+  captured in the solution doc).
 
-The architecture-doc skill's contract (self-contained, decision-aware, solution-doc-shaped output with Decision
-Records and Blockers) is the upstream you're checking against. Treat unrecorded decisions or contradictions with the
-architecture doc as Critical Issues.
+The solution document's contract (self-contained, decision-aware output with Decision Records and Blockers) is the
+upstream you're checking against. Treat unrecorded decisions or contradictions with the architecture decisions as
+Critical Issues.
 
 The canonical implementation-plan checklist is the *downstream* consumer of the solution doc. Its "Context & Scope
 Handoff" and "User Stories & Business Rules" sections name the items the planner expects the solution doc to deliver:
@@ -44,7 +44,7 @@ Blocker, not a recommendation.
   **Decision Records**, not re-litigated. Open questions are tracked explicitly, not buried in prose.
 - **Walk every business case end-to-end.** If a journey shows up in the summary but isn't expanded with inputs,
   outputs, roles, acceptance criteria, and failure modes, it isn't really in the doc.
-- **Cite, don't invent.** Pull from architecture-doc Decision Records, existing code/schema, or stakeholder input. If
+- **Cite, don't invent.** Pull from the solution document's Decision Records, existing code/schema, or stakeholder input. If
   the answer isn't grounded, it's an Open Question — not a placeholder.
 - **Reuse before build.** For every capability, the doc must call out whether an existing component/service is reused
   or something new is built, with a one-line reason. Silent "build new" is a smell.
@@ -119,8 +119,8 @@ Blocker, not a recommendation.
 - Are **constraints from the architecture doc** (deployment model, tech-stack boundaries, auth model, data-model
   facts) respected in how the solution is described? The solution doc shouldn't redesign the architecture by accident.
 - For any **new decision** introduced at the solution-doc level (e.g. a journey requires a choice not faced at
-  architecture time): is it recorded as a Decision Record with a fresh DR-ID continuing the architecture-doc
-  sequence, or surfaced as an Open Question to send back to architecture / `/dev:compare`? DR-IDs are never
+  architecture time): is it recorded as a Decision Record with a fresh DR-ID continuing the established
+  Decision-Record (DR-ID) sequence, or surfaced as an Open Question to send back to architecture / `/dev:compare`? DR-IDs are never
   reused, never renumbered.
 
 ## Open Questions, Blockers & Spikes
@@ -205,7 +205,7 @@ contradictions, architecture-decision conflicts):
 - Carried-forward decisions: <list DR-IDs>
 - Conflicts with architecture doc: <DR-ID where the doc contradicts it>
 - New decisions introduced here: <new DR-IDs assigned>
-- Missing carry-forwards: <architecture-doc DR-IDs that should have been carried but weren't>
+- Missing carry-forwards: <Decision-Record IDs that should have been carried forward but weren't>
 
 **Gaps & Open Questions** (unanswered — who owns each):
 | Where | What's missing | Owner | Severity |
