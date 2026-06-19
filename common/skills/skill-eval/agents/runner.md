@@ -1,3 +1,4 @@
+<!-- Internal subagent prompt — loaded by skill-eval's SKILL.md by relative path; not a standalone plugin agent or skill. -->
 # Runner Subagent
 
 You are running ONE test case against the target prompt or skill. You don't

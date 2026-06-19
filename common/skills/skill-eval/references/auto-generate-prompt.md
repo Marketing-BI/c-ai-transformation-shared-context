@@ -72,17 +72,14 @@ With the `json` prefill and ` ``` ` stop sequence, the response should parse
 directly as a JSON array. Wrap it in the full dataset shape described in
 `dataset-schema.md` before saving:
 
-```python
-import json
-from datetime import datetime, timezone
-
-parsed_cases = json.loads(response_text)
+```
+cases = parse_json(response_text)
 dataset = {
-    "dataset_name": "auto-generated",
-    "generated": True,
-    "generator_model": "<model id used to generate>",
-    "created_at": datetime.now(timezone.utc).isoformat(),
-    "cases": parsed_cases,
+    dataset_name:    "auto-generated",
+    generated:       true,
+    generator_model: "<model id used to generate>",
+    created_at:      now_utc_iso8601(),   // ISO-8601 timestamp, UTC
+    cases:           cases,
 }
 ```
 

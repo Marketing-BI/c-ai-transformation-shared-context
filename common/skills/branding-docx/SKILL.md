@@ -68,9 +68,9 @@ document_type: "Statement of Work"
 client_name: "«Client Contact»"
 client_company: "«Client Company»"
 supplier_name: "«Your Contact»"
-created_date: "2026-03-01"
-revision_date: "2026-03-11"
-valid_until: "2026-04-10"
+created_date: "«YYYY-MM-DD»"
+revision_date: "«YYYY-MM-DD»"
+valid_until: "«YYYY-MM-DD»"
 ---
 ```
 
@@ -90,8 +90,10 @@ Two approaches:
 - **Pure programmatic generation** — reproducible but loses decorative anchored images. Use only if the template
   approach fails.
 
-For programmatic-generation specifics, refer to your docx library's documentation. This skill provides the scaffold
-and the brand spec only; the brand assets come from the client.
+For programmatic-generation specifics, refer to your docx library's documentation. If you don't already have an
+unpack/pack workflow, a library such as `python-docx` (or your language's equivalent — e.g. Apache POI for Java) can
+generate the `.docx` programmatically; adapt these steps to your environment's docx tooling. This skill provides the
+scaffold and the brand spec only; the brand assets come from the client.
 
 ## Asset files
 

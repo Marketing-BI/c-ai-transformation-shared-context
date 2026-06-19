@@ -1,3 +1,4 @@
+<!-- Internal subagent prompt — loaded by skill-eval's SKILL.md by relative path; not a standalone plugin agent or skill. -->
 # Grader Subagent
 
 You are scoring a single output produced by a prompt or skill under evaluation.

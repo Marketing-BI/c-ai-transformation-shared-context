@@ -207,10 +207,10 @@ Cap parallel subagents at 8 by default. Users on shared API keys can hit
 rate limits fast. If you catch a 429, back off and retry sequentially for
 the remaining cases rather than failing the whole run.
 
-Use a fast, inexpensive model for both the target run (when the user hasn't
-specified a model) and the grader — the 1–10 rubric is well within a small
-model's capabilities. Offer a stronger model as an override for higher-stakes
-evals.
+Use a fast, inexpensive model (a small/fast model from your AI provider — the
+1–10 rubric is well within a small model's capabilities) for both the target
+run (when the user hasn't specified a model) and the grader. Offer a stronger
+model as an override for higher-stakes evals.
 
 ## Iteration workflow
 
