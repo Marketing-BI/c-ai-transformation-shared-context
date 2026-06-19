@@ -30,7 +30,7 @@ Resolve in order. Prompt the user for anything missing — one question at a tim
 | `summary` | yes | Short title. |
 | `description` | yes | Markdown input; convert to ADF before send. |
 | `assignee` | auto | **Auto-resolved** to current user via `atlassianUserInfo`. Do not ask — always assign to the current user. |
-| `storyPoints` | no | Numeric value. Written to `customfield_10033`. For marker syntax and placement rules (used by batch workflows), see `/common:jira-estimates`. |
+| `storyPoints` | no | Numeric value. Written to your Jira's Story Points custom field — its ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual Story Points field ID, or discover it from the issue field metadata. Do not assume another instance's ID. For marker syntax and placement rules (used by batch workflows), see `/common:jira-estimates`. |
 | `priority` | no | e.g. High, Medium, Low. |
 | `labels` | no | Array of strings. |
 | `parent` | no | Epic key for a Story; Story key for a Sub-task. |
@@ -41,7 +41,7 @@ Resolve in order. Prompt the user for anything missing — one question at a tim
 1. Gather missing required fields (ask one at a time). If `parent` is provided, derive `project` from its key prefix (`PROJ-42` → `PROJ`) and do not prompt for it.
 2. **Resolve assignee.** Call `atlassianUserInfo` to get the current user's accountId. Always assign to the current user.
 3. Convert `description` markdown → ADF using the mapping table below.
-4. If `storyPoints` provided, include as `customfield_10033` in `additionalFields`.
+4. If `storyPoints` provided, include it in `additionalFields` using your Jira instance's Story Points field ID (instance-specific; discover via issue field metadata if unknown).
 5. Render the preview block (see "Preview Format"). Wait for the user to respond `yes` / `create` (or `edit` / `cancel`).
 6. Call `createJiraIssue` with the resolved fields.
 7. **Transition to TO-DO.** Call `getTransitionsForJiraIssue` to find the transition ID for "To Do" status, then call `transitionJiraIssue` to move the ticket to TO-DO. If the transition fails (e.g. already in TO-DO), log a warning and continue.
@@ -60,7 +60,7 @@ Assignee:    <current user name> (auto)
 Priority:    <priority or "-">
 Labels:      <labels or "-">
 Parent:      <parent or "-">
-SP:          <storyPoints or "-"> (customfield_10033)
+SP:          <storyPoints or "-"> (instance-specific Story Points field)
 Additional:  <keys of additionalFields or "-">
 
 Description (rendered from markdown):

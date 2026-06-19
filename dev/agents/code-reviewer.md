@@ -27,7 +27,7 @@ to it rather than imposing conventions from a language the project doesn't use.
 
 ## What to flag
 
-- **Real bugs** — logic errors, off-by-one, wrong operator, incorrect condition, unhandled absence (null/undefined)
+- **Real bugs** — logic errors, off-by-one, wrong operator, incorrect condition, unhandled absence (null/nil)
   that crashes, data-loss or data-corruption paths, race conditions visible in the code.
 - **Coding-standard violations** — clear breaches of the project's language coding standard (the always-rules cover the
   specifics: meaningful names, immutability, explicit contracts, handling absence deliberately).

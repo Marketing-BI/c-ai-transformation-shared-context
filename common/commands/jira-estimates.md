@@ -10,7 +10,7 @@ Estimates can appear on **any ticket level** (Story, Sub-task). Both Story Point
 
 ## Story Points field
 
-Story Points are **always** written to `customfield_10033`. Do not ask the user for the field ID.
+Story Points are written to your Jira's Story Points custom field — its ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual Story Points field ID, or discover it from the issue field metadata. Do not assume another instance's ID.
 
 ## Story Points markers (case-insensitive)
 

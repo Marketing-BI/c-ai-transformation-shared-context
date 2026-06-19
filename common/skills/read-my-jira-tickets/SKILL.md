@@ -30,6 +30,8 @@ Trigger on any of:
 - "jaké mám tickety" / "moje Jira tickety"
 - "co mám v Jira" / "co mám na talíři"
 - "na čem pracuji" / "co teď řeším"
+- "moje otevřené úkoly"
+- "zobraz moje tickety"
 - Any request for an overview of the _user's own_ assigned work
 
 If the user asks about _someone else's_ tickets or wants a project-wide query, this is the wrong skill — use a

@@ -28,6 +28,7 @@ Trigger on any of:
 - "napiš to do Confluence"
 - "vytvoř Confluence stránku pro [téma]"
 - "aktualizuj Confluence stránku o [tématu]"
+- "publikuj do Confluence"
 - "zdokumentuj toto rozhodnutí v Confluence"
 
 ## What belongs in Confluence
