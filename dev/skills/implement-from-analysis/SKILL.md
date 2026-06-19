@@ -1,8 +1,8 @@
 ---
 name: implement-from-analysis
 description: |
-  Use when the user has an approved plan (from /dev:analyze-jira-ticket, /dev:plan, a doc, a local file, or inline
-  content) and wants it implemented as reviewed LOCAL commits. Confirms preconditions, asks you to choose one of four
+  Use when the user has an approved plan (or a context dump accepted as the working plan) (from /dev:analyze-jira-ticket,
+  /dev:plan, a doc, a local file, or inline content) and wants it implemented as reviewed LOCAL commits. Confirms preconditions, asks you to choose one of four
   delivery models (A worktree / B current branch / C umbrella+stacked / D local-only), does the matching git setup,
   runs test-first TDD task-by-task with scope discipline, then delegates the review pass to /dev:code-review and runs
   final verification. Creates LOCAL commits via /common:git-commit. **Never pushes and never opens a PR/MR** — for
@@ -259,6 +259,7 @@ Step 3: git setup per chosen model (references/conventions.md)
     ▼
 Step 4: implement task by task — test-first (red→green), scope discipline from practices
     └─ full test suite + lint after each task
+        (Step 5 surfaces trade-offs inline during Step 4 — no separate branch)
     │
     ▼
 Step 6: delegate review to /dev:code-review (scope by model)

@@ -139,6 +139,7 @@ equally valid path; the heredoc only matters when the body goes through a shell.
 
 ## Section checklist (before opening)
 
+- [ ] Branch pushed to remote
 1. [ ] Summary
 2. [ ] Series context — status table + branching diagram (+ stacked-base note if stacked)
 3. [ ] Version (or omitted if no bump)

@@ -236,7 +236,7 @@ first). Pull `Version` / `Environment variables` / change summary from that `pre
 `references/multi-pr-template.md` carries the full umbrella-open detail: base-ref selection (umbrella vs stacked on the
 preceding sub-PR/MR head), the series-context section, the title format, previous-PR/MR discovery, and the
 host-agnostic push + create. Reviewer request and the optional Jira review field are intentionally **out of scope** for
-the umbrella path. See `references/conventions.md` (in `/dev:implement-from-analysis`) for the branch/base conventions.
+the umbrella path. See `dev/skills/implement-from-analysis/references/conventions.md` for the branch/base conventions.
 
 After a sub-PR/MR opens, report its URL, base / head branches, commit count, and any follow-up (e.g. "after the
 preceding sub-PR/MR merges, retarget this one's base at the umbrella").
@@ -245,8 +245,10 @@ preceding sub-PR/MR merges, retarget this one's base at the umbrella").
 
 1. Update the plan tracking doc (if the project keeps one) to mark the current sub-unit Done.
 2. Ask the user: sub-PR/MR `<N>` is merged into the umbrella; continue with sub-PR/MR `<N+1>`?
-3. If yes, **return to Step 3** (re-delegate to `/dev:implement-from-analysis` with the next sub-unit's plan), then
-   Steps 4–6 again.
+3. If yes, source the next sub-unit's plan from the next section of the plan document if the plan is a doc; if the work
+   was decomposed inline, summarize the next sub-unit from the session context and confirm it with the user before
+   re-delegating. Then **return to Step 3** (re-delegate to `/dev:implement-from-analysis` with that next sub-unit's
+   plan), then Steps 4–6 again.
 4. If no (the user wants a pause / different work), exit cleanly and document where you left off.
 
 **Final umbrella merge.** After **all** sub-PR/MRs are merged into the umbrella, propose:
