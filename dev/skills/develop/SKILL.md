@@ -1,71 +1,81 @@
 ---
 name: develop
 description: |
-  Orchestrates a complete development cycle from a source-of-truth to an opened PR/MR. Loads the
-  source (a Confluence page, a local design doc, a Jira ticket, or a free-form prompt — at least one),
-  reconciles it with the code, optionally brainstorms the gaps, writes a plan, chooses a delivery model
-  (single PR/MR via worktree vs a multi-PR/MR split), implements task-by-task, runs an independent local
-  code review BEFORE push, then pushes and opens a PR/MR with a thorough description. Use when starting any
-  new development phase, plan, or feature cycle — invoke it before touching implementation code. The source
-  is flexible: at least one of a Confluence URL/ID, a local file path, a Jira key, or an inline description
-  must be provided.
+  Orchestrator for the full development cycle. Validates the input source (a Jira ticket key, a Confluence URL/ID,
+  a local design-doc path, or an inline description — at least one), dispatches the load by source type (Jira →
+  /dev:analyze-jira-ticket for a code-aware context dump; Confluence → read-only fetch; local file → Read; inline →
+  use the prompt), then — for Jira sources only — asks whether to formalize a written plan via /dev:plan or proceed
+  with the context dump as-is. It delegates the doing phase (delivery model + git setup + TDD + review + verification)
+  to /dev:implement-from-analysis, then branches on the returned delivery model: local-only stops gracefully; a single
+  PR/MR is opened via /dev:open-pr; an umbrella multi-PR/MR runs a per-unit loop. Use before touching implementation
+  code when starting any new development phase, plan, or feature cycle.
 
   English triggers: "develop", "dev cycle", "start dev cycle", "next plan", "implement next", "run the full
-  development cycle", "take this from design to PR", "/dev:develop"
+  development cycle", "take this from design to PR", "take this from design to MR", "/dev:develop"
 
   České spouštěče: "vývojový cyklus", "spusť vývojový cyklus", "další plán", "implementuj další", "rozjeď vývoj",
-  "od návrhu k PR", "naimplementuj a otevři PR", "/dev:develop"
+  "od návrhu k PR", "od návrhu k MR", "naimplementuj a otevři PR", "/dev:develop"
 
   Do NOT apply when: the user only wants to read a ticket (use /common:read-jira-ticket), only wants to analyse
   a ticket without driving the whole cycle (use /dev:analyze-jira-ticket), only wants to review existing changes
   (use /dev:code-review), or already has an approved plan and just wants to implement it (use
   /dev:implement-from-analysis).
 user-invocable: true
-argument-hint: '[source: confluence-url | local-file-path | jira-key | inline-description] [jira-key-or-jql]'
+argument-hint: '[source: jira-key | confluence-url | local-file-path | inline-description] [jira-key-or-jql]'
 allowed-tools:
   Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, AskUserQuestion, mcp__atlassian__*
 effort: xhigh
 ---
 
-# Develop — Full Development Cycle (source-flexible)
+# Develop — Full Development Cycle (orchestrator)
 
-Orchestrate a complete development cycle, keeping each stage a disciplined, reviewable checkpoint rather than
-collapsing the whole workflow into one undifferentiated session.
+Orchestrate the complete development cycle by **composing other skills**, keeping each stage a disciplined, reviewable
+checkpoint rather than collapsing the whole workflow into one undifferentiated session.
 
-The **source of truth for scope** can be one of several things — pick the richest one available:
+Develop validates the input, dispatches the load by source type, asks the optional plan-formalization question (Jira
+sources only), delegates the doing phase to `/dev:implement-from-analysis`, then branches on the delivery model that
+skill returns — stopping for local-only, opening a single PR/MR via `/dev:open-pr`, or running a per-unit umbrella loop.
 
-1. **Confluence page** — a fully-fledged design with decisions, scope, and acceptance criteria
-2. **Local design doc** — a markdown file in the repo (e.g. a meeting transcript, a hand-written spec, handover notes)
-3. **Jira ticket** — issue description + comments + linked subtasks
-4. **Inline description** — the user types the requirements directly in chat
+This skill is an **orchestrator**: each heavy stage is owned by a consolidated brick, and develop just sequences them
+and keeps the source-dispatch + delivery-model branching. It does **not** re-describe a brick's internals — it names
+the brick and the hand-off. The delegations:
 
-Jira issues separately show **how the design has already been broken down into concrete tasks** (subtasks, related
-work, status). The local codebase shows **what has already been built**. The cycle reconciles all available signals
-before touching new code.
+- **Source load (Jira)** is owned by **`/dev:analyze-jira-ticket`** — it loads the ticket, scans the code, and returns
+  a structured context dump. Develop does **not** restate that dump's format or re-run the code scan.
+- **Optional plan formalization (Jira only)** is owned by **`/dev:plan`** (heavyweight, solution-doc-based), which in
+  turn expects a **`/dev:solution-doc`** as input.
+- **The doing phase** (delivery model + git setup + test-first build loop + review + verification) is owned by
+  **`/dev:implement-from-analysis`** — it asks the user for one of the four delivery models and returns the chosen one.
+- **The PR/MR open** (single PR/MR) is owned by **`/dev:open-pr`** — our merged skill that runs the pre-flight
+  checklist (env-var propagation, version bump, changelog, `CLAUDE.md` review) **and** pushes + opens the PR/MR in one
+  call. There is **no separate pr-prep step**.
+- **Broader cross-system context** (Jira + Confluence together), when the single source isn't enough, is available via
+  **`/common:context-pull`**. The primary load is the Step-1 source-dispatch — only reach for context-pull when you
+  genuinely need the wider picture; don't duplicate what source-dispatch already covered.
+- **Confluence publishing** (any durable doc develop writes back, e.g. a brainstorm or plan write-back) is routed
+  through **`/common:confluence-update`**.
+- **Local commits** go through **`/common:git-commit`**; **Jira transitions** through **`/common:jira-update`** — both
+  user-gated.
+
+> **Optional enhancement:** the finishing flow (Step 7) can lean on the `superpowers` plugin's
+> `finishing-a-development-branch` skill if installed. It is an enhancement, not a requirement — this skill states the
+> same discipline in its own words so it is self-contained without it.
 
 **Announce at start:** state that you are starting the `/dev:develop` cycle.
 
-> **Optional enhancement:** several stages below describe a discipline (brainstorming, plan-writing, isolated
-> worktrees, task-by-task execution, verification-before-completion). If the `superpowers` plugin is installed you can
-> lean on its skills (`brainstorming`, `writing-plans`, `using-git-worktrees`, `subagent-driven-development`,
-> `verification-before-completion`, `finishing-a-development-branch`) to drive each one. They are an enhancement, not a
-> requirement — this skill spells out the same discipline in its own words so it is fully self-contained without them.
+## Skill chain (who does what)
 
-This skill is an **orchestrator**: each heavy stage is owned by a consolidated brick, and develop just sequences them
-(source-of-truth → reconcile → plan → implement → review → open) and keeps the single-vs-multi delivery decision. The
-delegations:
-
-- **Ambient project context** (Jira + Confluence) is loaded via **`/common:context-pull`**.
-- **The build loop** (task-by-task, test-first implementation) is owned by **`/dev:implement-from-analysis`**.
-- **The pre-push review** in Step 7 is delegated to **`/dev:code-review`**, which owns the parallel reviewer-agent
-  dispatch and triage.
-- **The PR/MR open** in Step 8 is delegated to **`/dev:open-pr`** — one skill that runs the pre-flight checklist
-  (env-var propagation, version bump, changelog, `CLAUDE.md` review), then pushes and opens the PR/MR with the reviewer
-  requested. Use `/dev:open-pr prep-only` for the checklist-only path (local file edits, no push).
-- **Confluence publishing** (any durable doc develop writes) is routed through **`/common:confluence-update`**.
-
-Each delegated brick documents its own steps — develop names the brick and the hand-off, it does not restate the
-brick's internals.
+| Phase                                       | Owner                                                        |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| Validate input source                       | `/dev:develop` (Step 0)                                       |
+| Load + code scan (Jira)                     | `/dev:analyze-jira-ticket` (load + scan + context dump)       |
+| Load (Confluence / local / inline)          | inline in `/dev:develop` Step 1 (no code scan)               |
+| Heavy plan creation (optional, Jira only)   | `/dev:plan` (← needs a `/dev:solution-doc` as input)         |
+| Delivery model + git setup + build + review | `/dev:implement-from-analysis`                               |
+| Open single PR/MR (Models A and B)          | `/dev:open-pr` (merged checklist + push + open)              |
+| Open umbrella sub-PR/MR (Model C)           | inline in `/dev:develop` Step 6 (`references/multi-pr-template.md`) |
+| Per-unit loop (Model C)                     | `/dev:develop` Step 6 (orchestration only)                   |
+| Finishing                                   | `superpowers:finishing-a-development-branch` (if installed)  |
 
 ---
 
@@ -73,384 +83,228 @@ brick's internals.
 
 `$ARGUMENTS`
 
-- **`$1` = primary source (REQUIRED — at least one signal)** — can be:
-  - Confluence URL/ID (a wiki page URL on your Confluence site, or a plain numeric page ID)
-  - Local file path (relative or absolute, e.g. `docs/handover.md`)
+- **`$1` = primary source (REQUIRED — at least one signal)** — one of:
   - Jira key (`PROJ-123`)
+  - Confluence URL/ID (a wiki page URL on your Confluence site, or a plain numeric page ID)
+  - Local file path ending in `.md` / `.txt` (relative or absolute, e.g. `docs/handover.md`) that exists
   - Inline description (anything else — treat the user's prompt itself as the source)
-- **`$2` = Jira scope (optional)** — issue key, epic key, project key, or a full JQL string for subtask discovery.
+- **`$2` = optional Jira scope** — issue key, epic key, project key, or a full JQL string for sibling/subtask context.
+  Passed through downstream if relevant.
 
-### Step 0: Input validation (mandatory)
+---
+
+## Step 0 — Validate source
 
 Look at `$1` and detect the source type:
 
-| `$1` matches                                                     | Source type        | Loader                                       |
-| ---------------------------------------------------------------- | ------------------ | -------------------------------------------- |
-| A Confluence wiki URL, or a numeric page ID                      | Confluence         | `mcp__atlassian__getConfluencePage`          |
-| Path ending in `.md` / `.txt` (relative or absolute) that exists | Local file         | `Read`                                       |
-| `[A-Z]+-\d+`                                                     | Jira ticket        | `/common:read-jira-ticket`                   |
-| Anything else                                                    | Inline description | Use the user's prompt directly               |
+| `$1` matches                                                     | Source type        |
+| ---------------------------------------------------------------- | ------------------ |
+| `[A-Z]+-\d+`                                                     | Jira ticket        |
+| A Confluence wiki URL, or a numeric page ID                      | Confluence         |
+| Path ending in `.md` / `.txt` (relative or absolute) that exists | Local file         |
+| Anything else (free-form text)                                   | Inline description |
 
 If **NONE** of these can be resolved (no `$1`, no obvious local file in the repo, no inline context):
 
 - **Do not proceed.**
-- Tell the user the command needs at least one source — a Confluence URL, a local file (e.g. a design doc), a Jira key,
-  or a description in chat — and ask them to retry with one of those.
-- Stop.
-
-If multiple signals are available (e.g. a Confluence URL + a Jira key + local notes), use them all — Confluence is
-primary scope, Jira shows the breakdown, the local file may carry additional context.
-
-If `$2` is missing, continue without separate Jira scope. Jira context is optional. If `$1` is itself a Jira ticket,
-also fetch its parent / sibling subtasks (rich Jira context comes from `$1` alone).
+- Tell the user the command needs at least one source — a Jira key, a Confluence URL, a local file path (e.g. a design
+  doc), or a description in chat — and ask them to retry with one of those.
+- **Stop.**
 
 ---
 
-## Step 1: Load Context
+## Step 1 — Dispatch + load by source type
 
-Load all available signals based on what's provided.
+Load the source content (or delegate the load) based on the type detected in Step 0.
 
-1. **Primary source:**
-   - Confluence: extract the title, project goal, scope, key decisions, open questions, and acceptance criteria.
-   - Local file: read it whole (or with offsets if huge), summarize the same fields.
-   - Jira ticket: load via `/common:read-jira-ticket` for the description + comments. If it's a subtask, also fetch its
-     parent + siblings.
-   - Inline description: parse the user's prompt for goal, constraints, and success criteria.
+### 1a — Jira ticket
 
-2. **Ambient project context (Jira + Confluence):** when you need the broader cross-system picture around the
-   source — related Jira work and the relevant Confluence space — invoke **`/common:context-pull`** rather than
-   re-describing cross-system loading here. Scope it with the `$2` Jira key/epic/JQL (or the source's own ticket key
-   if `$1` is a Jira key) and the source's topic; it pulls Jira + Confluence in one parallel pass and returns a
-   structured summary. (If `$2` and the source give no project scope to pull, skip this — Jira/Confluence context is
-   optional.)
+Invoke **`/dev:analyze-jira-ticket`** with `$1` as its argument. That skill loads the ticket (via
+`/common:read-jira-ticket`), detects the repo structure, scans the relevant packages, and produces a **structured
+context dump**. It does **not** propose a plan, ask Q&A, or hand off — its output is the deliverable. Capture it.
+Proceed to **Step 2**.
 
-3. **Local repo state:**
-   - Read the project `CLAUDE.md` (and any shared rule files it references) for project-specific conventions and
-     data-safety rules.
-   - Check for any existing spec / plan documents that might be relevant to the source (e.g. under a `docs/plans/` or
-     `docs/specs/` directory if the project keeps them).
-   - `git status`, `git branch --show-current`, `git log --oneline -10` to understand the current branch state and
-     recent work.
+### 1b — Confluence URL
 
-4. **Summary before continuing:**
-   - State the source (type + identifier), the Jira issues found (count + statuses, if any), the current branch, and a
-     short scope summary.
-   - **Don't ask about open questions yet** — go to Step 2 (code reconciliation) first; many "open questions" are
-     answered by reading the code.
+Fetch the page **read-only** via `mcp__atlassian__getConfluencePage` (resolve the `cloudId` first via
+`mcp__atlassian__getAccessibleAtlassianResources`). Extract title + body as markdown. **No code scan.** Treat the
+fetched content as the plan input. **Skip Step 2** — proceed to **Step 3**.
+
+### 1c — Local file
+
+Use **`Read`** to load the file (full file if small, otherwise targeted reads). Treat the content as the plan input.
+**Skip Step 2** — proceed to **Step 3**.
+
+### 1d — Inline description
+
+Use the user's prompt itself as the plan input. **Skip Step 2** — proceed to **Step 3**.
+
+> If a wider cross-system picture is needed (related Jira work + the relevant Confluence space) that the single source
+> doesn't give, invoke **`/common:context-pull`** scoped by `$2` / the source's topic — but only when source-dispatch
+> above isn't enough. Don't duplicate context the dispatch already loaded.
 
 ---
 
-## Step 2: Code-vs-Source Reconciliation
+## Step 2 — [Jira sources only] Optional plan formalization
 
-**Goal:** figure out what from the source already exists in the code, what's missing, and where code and source
-diverge. Do this **before asking the user anything** — most "open questions" are answerable from the code.
+Runs **only when Step 1 took the Jira branch (1a)**. For Confluence / local / inline sources, develop already proceeded
+to Step 3.
 
-1. **Identify the key concepts from the source:**
-   - List concrete entities, modules, interfaces, endpoints, schemas, configs, events — anything with a named code
-     equivalent.
-   - Examples: type/class names, function names, package/module names, env vars, DB tables, API routes, event names.
+Show the user the structured context dump from `/dev:analyze-jira-ticket` and ask:
 
-2. **Find them in the code:**
-   - **Prefer symbol-level lookups** when a language server / code-intelligence tool is available — they are more
-     precise than text search (find references, read a definition, hover, diagnostics).
-   - **Fall back to `Glob` + `Grep`** for non-symbol identifiers — config keys, env vars, DB columns, API route
-     strings, content in markdown / schema / config files.
-   - Use `Glob` to narrow scope first.
-   - Read files via `Read` — full file if it's small, otherwise targeted reads.
-   - If Jira tasks are `Done` or `In Progress`, check git history (`git log --oneline -- <path>`,
-     `git log --all --grep="<JIRA-KEY>"`) — work may already be on a branch.
-
-3. **Build a reconciliation table** and show it to the user:
-
-   | Concept from source       | State in code                                  | Note                            |
-   | ------------------------- | ---------------------------------------------- | ------------------------------- |
-   | `Client.start(ctx)`       | Exists in the jobs module                      | OK, missing cleanup at shutdown |
-   | `IndexingPipeline`        | Doesn't exist                                  | Needs to be created             |
-   | `CrawlerConfig.maxDepth`  | Exists, typed as a signed int; source says uint | **Mismatch — needs decision**  |
-   | Event `crawl.completed`   | Doesn't exist                                  | Needs to be created             |
-
-4. **Classify the findings:**
-   - **Done / partially done** — already exists, matches the source. Note in the plan that we'll build on it.
-   - **Missing but obvious** — the source + existing code give a clear direction. Goes straight into the plan.
-   - **Real mismatches / unknowns** — code and source contradict, or the source leaves something open while the code
-     already assumes something. **Only this bucket needs Step 3 brainstorming.**
-
-5. **Sanity-check Jira vs code (when Jira context exists):**
-   - A Jira issue is `Done` but the corresponding code isn't there → flag it; it might be reverted or on another branch.
-   - A Jira issue is `In Progress` and a branch/worktree exists → mention it; it might not need to start from scratch.
-
----
-
-## Step 3: Brainstorming — default ON, skip only for small + clean changes
-
-**Brainstorming is the default.** It costs little and consistently catches scope and design gaps the source did not
-spell out. **Run it unless ALL of the following are true:**
-
-- The change is small and isolated (1–2 files, single logical concern, no architectural impact)
-- The source is rich (a Confluence page with decisions and acceptance criteria, OR a thoroughly-written design doc, OR
-  a detailed Jira ticket)
-- Step 2 produced no items in "Real mismatches / unknowns"
-- The open questions in the source are all answered by the code
-- The user has not asked for brainstorming explicitly
-
-If all five are true → go straight to Step 4 (write the plan). Tell the user: the change is small, the source is well
-thought-out, and code reconciliation is clean — skipping brainstorming.
-
-**In every other case, brainstorm.** Especially when:
-
-- The source is raw (a meeting transcript without explicit decisions, hand-written notes, an inline description)
-- Step 2 produced "Real mismatches" or "unknowns"
-- The source has explicit open questions
-- The change touches multiple modules / has architectural impact
-- The user asked for it
-
-Drive a structured, one-question-at-a-time exploration of intent, requirements, and design before any implementation
-(e.g. via the `superpowers` plugin's `brainstorming` skill, if installed). Pass it the reconciliation table, the list
-of unresolved items, and the source summary.
-
-- Ask **one question at a time**.
-- **Every question must reference a concrete finding** — not a hypothetical. Format: _"Source says X, but
-  `<path/to/file>:42` does Y. Which is correct?"_
-- Output: a refined scope for the plan + a list of decisions that should be reflected back into the source. Route any
-  Confluence write through **`/common:confluence-update`** (it owns the durable-doc publish discipline — search before
-  create, page standards, the create/update); commit an updated local design doc directly; add a Jira comment only with
-  explicit user confirmation.
-
----
-
-## Step 4: Write the Plan + Choose Delivery Strategy
-
-**Two sub-steps.**
-
-### 4a: Ask the user how to deliver
-
-This is the **most important fork in the workflow**. Different shapes of work demand different delivery models. Ask the
-user:
-
-> "Before we write the plan — how do you want to deliver this work?
+> "Analysis complete. The output above is a structured context dump (ticket content + related code + observations) —
+> not yet a formal implementation plan. Two options:
 >
-> **A) Single PR/MR via git worktree** _(recommended for cohesive features, one logical chunk)_
+> **(a) Formalize into a plan via `/dev:plan`** — heavyweight: edge-case discovery, story-point estimates, parallel
+> architectural review, plan written to Confluence on sign-off. Best for non-trivial work where the ROI of a formal
+> plan is worth it.
 >
-> - I create an isolated worktree, implement the entire plan, and open one PR/MR at the end.
-> - The reviewer gets the whole solution at once and sees a coherent picture.
-> - If something needs to be reverted, it's atomic.
+> **(b) Proceed directly to implementation** — treat this context dump as the plan and pass it to
+> `/dev:implement-from-analysis`. Best for thin tickets where the description + code observations are enough to start.
 >
-> **B) Multi-PR/MR split** _(recommended for larger work, several logical steps, or when the reviewer can't comfortably
-> review a large diff)_
->
-> - I create an umbrella branch `feature/<TICKET>` directly (no worktree), and from it sub-branches
->   `feature/<TICKET>-<step1>`, `-<step2>`, etc.
-> - Each sub-branch gets its own PR/MR against the umbrella branch.
-> - After all sub-PRs/MRs are merged, a final umbrella merge goes to the default branch.
-> - The reviewer gets smaller, focused diffs, and reviews can run in parallel.
->
-> Which model?"
+> Which?"
 
-Wait for an explicit answer (A or B). The choice determines the rest of the workflow.
-
-### 4b: Write the plan
-
-Write a clear, step-by-step implementation plan the user can review (e.g. via the `superpowers` plugin's
-`writing-plans` skill, if installed). Save it under the project's plan directory if it keeps one (e.g.
-`docs/plans/YYYY-MM-DD-<short-name>.md`, or `YYYY-MM-DD-<TICKET>-pr-<N>-<short-name>.md` for the multi-PR/MR model — one
-plan per PR/MR).
-
-In the plan:
-
-- Explicitly link the source (Confluence URL, local file path, Jira key) and any related Jira tickets.
-- Include a short "Existing state" section summarizing the reconciliation table.
-- For **model A (single PR/MR)**: one plan covering all tasks.
-- For **model B (multi-PR/MR)**: write the plan for **the next PR/MR only**. Include a short "Series context" section
-  listing what comes before/after (which PRs/MRs are done / current / pending). Subsequent PR/MR plans are written when
-  you reach them — don't pre-write them all at once; scope evolves.
-
-**Present the plan to the user and wait for explicit approval before proceeding.**
+| User picks | What develop does                                                                                                                                                                                                                                                                                                            |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a)**    | Invoke **`/dev:plan`** and wait for it to complete. It expects a **`/dev:solution-doc`** Confluence page as input — if one isn't already linked from the ticket, tell the user: _"`/dev:plan` needs a solution-doc URL. Run `/dev:solution-doc` first, then re-invoke me with the resulting URL as `$1`."_ and stop. Otherwise capture the produced plan and use it as the plan input for Step 3. |
+| **(b)**    | Use the context dump from Step 1a as the plan input for Step 3.                                                                                                                                                                                                                                                              |
 
 ---
 
-## Step 5: Git Setup (depends on the delivery model)
+## Step 3 — Delegate the build to `/dev:implement-from-analysis`
 
-See `references/conventions.md` for the full table of branch naming, worktree paths, PR/MR base refs, and merge
-direction by model — including the first-time umbrella setup commands and the stacked-PR/MR retargeting flow.
+Invoke **`/dev:implement-from-analysis`** with the plan/context (from Step 1 or Step 2) + the ticket key (when `$1` was
+Jira). That skill owns the whole doing phase — it asks the user for one of the four delivery models, does the matching
+git setup, runs the test-first build loop with scope discipline, delegates the local review to `/dev:code-review`, runs
+final verification, and returns a handoff that **includes the chosen delivery model**, the branch, the commit count,
+and the findings summary. Its own SKILL.md documents those internals — don't restate them here.
 
-- **Model A (single PR/MR):** create an isolated worktree (a git worktree, or the `superpowers` plugin's
-  `using-git-worktrees` skill if installed).
-- **Model B (multi-PR/MR split):** no worktree; create the umbrella branch on the remote once, then a sub-branch per
-  PR/MR.
+**Wait for the handoff.** Read the returned delivery model and branch, then branch in Steps 4–7. Do **not** re-run
+reviewers, re-implement, or re-do verification — `/dev:implement-from-analysis` already covered those gates.
 
-After branch setup, run the test suite (or `build` + `lint` if there's no test runner) to confirm a clean baseline.
+The four delivery models (as defined and asked by `/dev:implement-from-analysis`):
 
----
-
-## Step 6: Implementation
-
-Execute the approved plan task by task via **`/dev:implement-from-analysis`** — it owns the disciplined test-first
-build loop (TDD when a test runner exists, structured manual verification when there isn't) and local commits, so
-develop does not hand-roll a separate execution loop. Hand it the approved plan file; it drives the tasks to green.
-
-The constraints develop enforces as the contract for that loop:
-
-- **Never invent a test runner** just to satisfy a task — adding a test framework is its own decision, not a side
-  effect of one feature. With no runner, the default is _describe expected behavior → implement → explicitly verify
-  (run the concrete command, check output) → commit_. The project `CLAUDE.md` may state this; treat it as the default
-  regardless.
-- **No new TODO/FIXME in the code this task adds or changes.** Existing TODO/FIXME in touched files are out of scope.
-  Deferred work goes into the plan file, not a code comment.
-- **Don't break existing interfaces** without a documented reason.
-- Local commits go through `/common:git-commit` (conventional, imperative, explain *why*).
-- If a task corresponds to an existing Jira issue, transition its status **only with explicit user confirmation**
-  (`/common:jira-update`).
-
-For **model B (multi-PR/MR)**: implementation is per current PR/MR only. Do not batch all PRs/MRs into one
-implementation block — finish the current PR/MR's work, push and merge it, then come back to write & implement the next
-one's plan.
+- **A** — single PR/MR via git worktree
+- **B** — single PR/MR on the current branch (no worktree)
+- **C** — umbrella + stacked sub-branches (multi-PR/MR)
+- **D** — local-only (no push, no PR/MR)
 
 ---
 
-## Step 7: Pre-Push Code Review (BEFORE push, BEFORE PR/MR creation)
+## Step 4 — Branch on the returned delivery model
 
-**This step happens BEFORE any `git push` and BEFORE opening a PR/MR.** Goal: catch issues locally with independent
-reviewers, so the colleagues' PR/MR review is faster and finds fewer real issues. The PR/MR description (Step 8) will
-reference the local review summary.
-
-**Critical**: run this for **EVERY** push that opens or updates a PR/MR. In model B, this means before each sub-PR/MR
-push. In model A, this means before the final push.
-
-Delegate the review to **`/dev:code-review`** — it owns the full QA machinery (scope resolution, parallel
-reviewer-agent dispatch, finding dedup, the triage gate, user-gated fixes); its own SKILL.md documents the steps.
-Do **not** hand-roll a separate review here.
-
-**Scope to pass it**: the exact diff range for the current push — `git diff <base-ref>...HEAD` (Model A: base = default
-branch; Model B: base = umbrella, or the preceding PR/MR head if stacked), plus the plan file path and the source
-(Confluence URL / local doc path / Jira key + summary) as context.
-
-**Contract `develop` enforces on the outcome** (the gate before Step 8):
-
-- **Fix Criticals before any push.** Do not proceed to Step 8 until all Critical Issues and contract gaps are resolved.
-- **Decide Recommendations with the user** — fix now or defer to a follow-up ticket; do not silently drop or apply.
-- **Surface Client Gaps / Open Questions** to the user; do not invent answers.
-
-`/dev:code-review` drives the triage and fix loop internally — do not re-describe those steps here.
+| Returned model         | What develop does next                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **D (local-only)**     | **Stop gracefully** — see Step 5.                                                                                |
+| **A or B (single PR/MR)** | Open the single PR/MR via `/dev:open-pr` — see Step 6.                                                        |
+| **C (umbrella/multi)** | Open each sub-PR/MR inline and run the per-unit loop — see Step 6.                                               |
 
 ---
 
-## Step 8: Open the PR/MR (the mechanism forks by delivery model)
+## Step 5 — Model D: stop gracefully
 
-After Step 7's review fixes are committed on the branch, open the PR/MR. **`/dev:open-pr`** is one skill that runs the
-pre-flight checklist (propagate new env vars, bump the version, append the changelog, review `CLAUDE.md`, summarize the
-change) and then pushes + opens the PR/MR with the reviewer requested. **How** you use it depends on the delivery model
-chosen in Step 4a:
+Implementation is complete locally and Model D means no push and no PR/MR. Announce:
 
-- **Model A (single PR/MR)** → delegate the whole thing to **`/dev:open-pr`** in one call (checklist + push + open).
-- **Model B (umbrella / multi-PR/MR)** → its single-base, single-ticket open doesn't fit umbrella / stacked branches,
-  so run **`/dev:open-pr prep-only`** for just the checklist mutations, commit them, then open the sub-PR/MR by hand
-  from `references/multi-pr-template.md` (the open-pr body format + a series-context section).
+> "Implementation complete on `<branch>` with N local commits, M critical findings resolved. Model D (local-only)
+> chosen — no PR/MR will be opened. Push when ready (`git push -u origin <branch>`), then open a PR/MR with
+> `/dev:open-pr` if you decide to."
 
-### 8a — Model A: delegate to `/dev:open-pr`
-
-Just invoke **`/dev:open-pr`** (add a `draft` token if it should be a draft, and a reviewer token if the user named
-one; otherwise it prompts for the reviewer). It owns the whole flow end-to-end: the pre-flight checklist, the
-existing-PR/MR check, the team-agreed body, push + PR/MR creation on your git host, the reviewer request, and (if the
-project wires it) the Jira review field. If it can't resolve the Jira key from the branch / commits, it asks the user.
-Its own SKILL.md documents the internals — don't restate or duplicate them here.
-
-### 8b — Model B: prep then open the umbrella sub-PR/MR here
-
-First run **`/dev:open-pr prep-only`** — it runs only the pre-flight checklist (env-var propagation, version bump,
-changelog, `CLAUDE.md` review) and stops without pushing or opening anything. **Commit the files it changes** (env
-files, version/manifest file, changelog, `CLAUDE.md`) on the current branch, then open the sub-PR/MR here. Pull the
-resulting `Version` / `Environment variables` / change summary into the `references/multi-pr-template.md` body — don't
-regenerate them.
-
-1. **Language** — default to English for the body + title; ask only on a concrete signal otherwise (the user said so,
-   the source is in another language, or a prior PR/MR in the series used one).
-2. **Base ref:**
-   - the preceding PR/MR merged → base = `feature/<TICKET>` (umbrella)
-   - the preceding PR/MR still open (stacked) → base = `feature/<TICKET>-<prev-step>` (the head branch of the preceding
-     open PR/MR). Note it in the body (the series-context section). After it merges, retarget the base at the umbrella
-     (see `references/conventions.md` and `references/multi-pr-template.md`).
-3. **Compose the body** from `references/multi-pr-template.md` — read it first. It mirrors the open-pr section order and
-   adds the series-context section, previous-PR/MR discovery, and the stacked-base note. Pull `Version` /
-   `Environment variables` from the `prep-only` checklist run above — don't recompute them.
-4. **Title:** `<TICKET> PR/MR <N>: <short summary>` (under ~80 chars).
-5. **Push + create** the PR/MR on your git host:
-   - Push the sub-branch: `git push -u origin <branch-name>`.
-   - Open the PR/MR with the chosen base, head, title, and the composed body. Use whatever your git host exposes — its
-     CLI or its web UI (the client wires their host's CLI/MCP here). When the host's CLI accepts a body on the command
-     line, pass it via a quoted heredoc so tables / code fences / diagrams survive intact (see
-     `references/multi-pr-template.md`).
-6. **Reviewer / Jira review field:** not handled via `/dev:open-pr` for Model B. Don't request a reviewer by default; if
-   the team wants the Jira review field set on sub-PRs/MRs too, do it manually — the umbrella path intentionally does
-   not replicate open-pr's reviewer machinery.
-
-After the PR/MR opens, report: the PR/MR URL, the base / head branches, the commit count, and any follow-up (e.g.
-"after PR/MR II merges, retarget this one's base at `feature/<TICKET>`").
+Do **not** continue. Push and PR/MR are user-led.
 
 ---
 
-## Step 9: Per-PR/MR loop (Model B only)
+## Step 6 — Open the PR/MR (forks by delivery model)
 
-After the current sub-PR/MR is merged into the umbrella (`feature/<TICKET>`):
+### 6a — Models A and B: delegate to `/dev:open-pr`
 
-1. Update the plan tracking doc (if the project keeps one) to mark the current PR/MR as Done.
-2. Ask the user: PR/MR `<N>` is merged into the umbrella; continue with PR/MR `<N+1>`? (You'll write the next plan based
-   on the post-`<N>` state.)
-3. If yes, return to Step 4b (write the next PR/MR's plan), then Steps 5–8.
+For both Model A (worktree) and Model B (current branch), invoke **`/dev:open-pr`** in **one call** (add a `draft`
+token for a draft, and a reviewer token if the user named one; otherwise it prompts). It is our **merged** skill: it
+runs the pre-flight checklist (propagate new env vars, bump the version, append the changelog, review `CLAUDE.md`,
+summarize the change) **and** then pushes + opens the PR/MR with the reviewer requested — the upstream's separate
+pr-prep + open-pr steps collapse into this single call. If it can't resolve the Jira key from the branch / commits, it
+asks the user. Its own SKILL.md documents the internals — don't restate or duplicate them. After it returns, go to
+**Step 7**.
+
+### 6b — Model C: open the umbrella sub-PR/MR here, then loop
+
+The umbrella / stacked base refs don't fit `/dev:open-pr`'s single-base, single-ticket open, so develop opens each
+sub-PR/MR inline. For the pre-flight checklist, run **`/dev:open-pr prep-only`** (Phase-1 checklist only — env-var
+propagation, version bump, changelog, `CLAUDE.md` review — no push, no open), **commit** the files it changes on the
+current sub-branch via `/common:git-commit`, then open the sub-PR/MR from **`references/multi-pr-template.md`** (read it
+first). Pull `Version` / `Environment variables` / change summary from that `prep-only` run — don't recompute them.
+
+`references/multi-pr-template.md` carries the full umbrella-open detail: base-ref selection (umbrella vs stacked on the
+preceding sub-PR/MR head), the series-context section, the title format, previous-PR/MR discovery, and the
+host-agnostic push + create. Reviewer request and the optional Jira review field are intentionally **out of scope** for
+the umbrella path. See `references/conventions.md` (in `/dev:implement-from-analysis`) for the branch/base conventions.
+
+After a sub-PR/MR opens, report its URL, base / head branches, commit count, and any follow-up (e.g. "after the
+preceding sub-PR/MR merges, retarget this one's base at the umbrella").
+
+**Per-unit loop.** After the current sub-PR/MR is merged into the umbrella (`feature/<TICKET>`):
+
+1. Update the plan tracking doc (if the project keeps one) to mark the current sub-unit Done.
+2. Ask the user: sub-PR/MR `<N>` is merged into the umbrella; continue with sub-PR/MR `<N+1>`?
+3. If yes, **return to Step 3** (re-delegate to `/dev:implement-from-analysis` with the next sub-unit's plan), then
+   Steps 4–6 again.
 4. If no (the user wants a pause / different work), exit cleanly and document where you left off.
 
-After **all sub-PRs/MRs are merged into the umbrella**, propose the final umbrella merge:
+**Final umbrella merge.** After **all** sub-PR/MRs are merged into the umbrella, propose:
 
-> "All sub-PRs/MRs are merged. Continue with the final umbrella merge `feature/<TICKET>` → `<default-branch>`?"
+> "All sub-PR/MRs are merged. Continue with the final umbrella merge `feature/<TICKET>` → `<default-branch>`?"
 
-This final merge typically goes through code review **again** (especially if the umbrella accumulated many sub-PRs/MRs)
-— repeat Step 7 with `<default-branch>...feature/<TICKET>` as the diff range.
+This final merge typically goes through code review **again** (especially if the umbrella accumulated many sub-PR/MRs):
+re-invoke **`/dev:implement-from-analysis`** with the umbrella as the working branch so its review pass runs against the
+`<default-branch>...feature/<TICKET>` diff. Then go to **Step 7**.
 
 ---
 
-## Step 10: Finish (after the final merge)
+## Step 7 — Finish
 
-Wrap up:
+Wrap up (after the single PR/MR for A/B, or after the final umbrella merge for C):
 
 - Run the development-branch finish flow — confirm everything is merged and decide how to integrate and clean up (e.g.
-  via the `superpowers` plugin's `finishing-a-development-branch` skill, if installed).
-- Update the plan tracking doc (if any) — mark the whole feature/ticket as Done.
-- Optionally suggest the user transition Jira issues to Done — **only with explicit confirmation**, and let the user
+  via the `superpowers` plugin's `finishing-a-development-branch` skill, if installed). The discipline in our own
+  words: confirm the work is merged, transition the Jira issue(s), and clean up the branch/worktree.
+- Update the plan tracking doc (if any) — mark the whole feature/ticket Done.
+- Transition the Jira issue(s) via **`/common:jira-update`** — **only with explicit user confirmation**; let the user
   click through the actual transition if they prefer.
-- Clean up local branches (`git branch -d`) — only with user confirmation.
-- Worktree cleanup (model A only) via the same worktree flow used in Step 5.
+- Clean up local branches (`git branch -d`) — only with user confirmation. Worktree cleanup (Model A only) via the same
+  worktree flow `/dev:implement-from-analysis` used in setup.
 
 ---
 
 ## Important Reminders
 
-- **Develop orchestrates; the bricks do the work.** Ambient context via `/common:context-pull`, the build loop via
-  `/dev:implement-from-analysis`, the review via `/dev:code-review`, the PR/MR open via `/dev:open-pr`, and any
-  Confluence publish via `/common:confluence-update`. Don't re-describe a brick's internals — name it and hand off.
-- **Source flexibility:** any of Confluence / local file / Jira / inline description is valid. If multiple are
-  provided, use them all; the richest one is primary scope.
-- **Brainstorming is the default.** Skip only when the change is small + isolated AND the source is rich AND
-  reconciliation is clean AND the user did not ask for it.
-- **Delivery model is a user choice.** Always ask in Step 4a; don't assume a default.
-- **Code review BEFORE push, every push.** Delegate to `/dev:code-review` (it selects and dispatches the `dev:`
-  reviewer agents in parallel and triages). Fix Critical Issues + contract gaps before push; decide Recommendations
-  with the user; surface business-case Client Gaps / Open Questions only.
-- **PR/MR opening forks by delivery model.** `/dev:open-pr` is one skill — pre-flight checklist (env vars, version
-  bump, changelog, `CLAUDE.md`) then push + open. Model A → one `/dev:open-pr` call. Model B → `/dev:open-pr prep-only`
-  for the checklist (commit it), then open the sub-PR/MR here from `references/multi-pr-template.md` (the open-pr body
-  format + a series-context section). Default language English; ask only on a concrete signal otherwise.
-- **Build via `/dev:implement-from-analysis`** — it owns the test-first task loop. Don't invent a test runner just for
-  one task; with no runner, verify manually and explicitly.
-- **No new TODO/FIXME in code this task adds or changes.** Existing TODO/FIXME in touched files are out of scope. Add a
-  task to the plan for deferred work instead.
-- **Extensibility:** don't change existing interfaces without reason.
+- **Develop is an orchestrator.** It validates the source, dispatches the load, asks the optional plan question (Jira
+  only), delegates the doing phase, and branches on the returned delivery model. It does **not** write plans, run code
+  scans (that's `/dev:analyze-jira-ticket`), implement code, dispatch reviewers, or restate any brick's internals — it
+  names the brick and hands off.
+- **Source dispatch** — Jira → `/dev:analyze-jira-ticket`; Confluence → `getConfluencePage` (read-only); local file →
+  `Read`; inline → use the prompt as-is. The primary load is the source-dispatch; reach for `/common:context-pull` only
+  for a wider cross-system picture the single source doesn't give — don't duplicate.
+- **The plan question runs ONLY for Jira sources.** For Confluence / local / inline, the content is expected to be a
+  plan (or a detailed spec) and goes straight to implement. `/dev:plan` is heavyweight and needs a `/dev:solution-doc`
+  as input — redirect there if the user chooses (a) without one.
+- **Delivery model is asked by `/dev:implement-from-analysis`, not here.** Don't pre-empt the question; branch on the
+  model it returns.
+- **Model D terminates the cycle** at Step 5 — stop gracefully; push + PR/MR are user-led.
+- **No separate pr-prep step.** `/dev:open-pr` is our **merged** prep+open skill — Models A and B call it **once**
+  (checklist + push + open). Model C runs `/dev:open-pr prep-only` for just the checklist, commits it, then opens the
+  sub-PR/MR here from `references/multi-pr-template.md`. Default language English; ask only on a concrete signal.
+- **Code review BEFORE push** is owned by `/dev:implement-from-analysis` (it delegates to `/dev:code-review`) — don't
+  re-dispatch reviewers from develop.
+- **Implementation discipline** (TDD, scope discipline, no new TODO/FIXME, don't break interfaces, full suite after
+  each task) is owned by `/dev:implement-from-analysis` — don't restate it here.
+- **Publishing** any durable doc develop writes goes through `/common:confluence-update`; **local commits** via
+  `/common:git-commit`; **Jira transitions** via `/common:jira-update`.
 - **Never modify Jira/Confluence without explicit user confirmation** — reading is fine; transitions, comments, and
   page updates require an explicit "yes" in chat.
-- **Auto-mode aware:** if the user is in auto mode, don't stop for low-risk routine decisions. But destructive /
-  shared-system actions (`git push`, opening a PR/MR, Jira writes, DB writes) ALWAYS need explicit user confirmation
-  regardless of mode.
+- **Auto-mode aware:** in auto mode, don't stop for low-risk routine decisions. But destructive / shared-system actions
+  (`git push`, opening a PR/MR, Jira writes, DB writes) ALWAYS need explicit user confirmation regardless of mode.
 
 ---
 
 ## Decision Tree (quick reference)
 
-See `references/decision-tree.md` for the full ASCII map of all steps and branches.
+See `references/decision-tree.md` for the full ASCII map of all steps and branches, plus the phase-ownership table.
