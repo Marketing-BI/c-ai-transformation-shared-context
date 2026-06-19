@@ -306,10 +306,11 @@ reference the local review summary.
 **Critical**: run this for **EVERY** push that opens or updates a PR/MR. In model B, this means before each sub-PR/MR
 push. In model A, this means before the final push.
 
-Delegate the review to **`/dev:code-review`** — it owns the reviewer selection (its `references/dispatch-matrix.md`),
-dispatches the relevant `dev:` reviewer agents **in parallel**, triages what they find, and drives user-gated fixes.
-This is the same machinery `/dev:implement-from-analysis` uses, so the `/dev` chain stays consistent. Do **not**
-hand-roll a separate review here.
+Delegate the review to **`/dev:code-review`** — it owns the full QA machinery: scope resolution via
+`references/dispatch-matrix.md`, parallel reviewer-agent dispatch, finding compilation and deduplication, a triage
+gate, and user-gated fixes. This is heavier than `/dev:implement-from-analysis`'s direct reviewer dispatch (which
+fires parallel `Agent` calls with no triage gate), and that extra weight is appropriate for the pre-push gate. Do
+**not** hand-roll a separate review here.
 
 - **Scope to pass it**: the exact diff range for the current push — `git diff <base-ref>...HEAD`
   (Model A: base = default branch; Model B: base = umbrella, or the preceding PR/MR head if stacked). You can also pass
@@ -377,6 +378,11 @@ Jira review field. If it can't resolve the Jira key from the branch / commits, i
 `/dev:open-pr` already documents how it consumes `/dev:pr-prep` output — don't restate it here. The Step 7.5
 housekeeping is already committed on the branch, so it derives `Version` / `Environment variables` read-only from the
 diff. Don't re-implement or duplicate any of that.
+
+Note: the `<!-- pr-prep:summary -->` block produced by the Step 7.5 `pr-prep` run is **not forwarded** to
+`/dev:open-pr` — `open-pr` derives the PR/MR summary from the branch diff via its own standalone fallback. If you
+want the curated `pr-prep` summary in the PR/MR body, invoke `pr-prep` in Step 7.5 with its create token so it
+chains directly to `open-pr` instead of stopping here.
 
 ### 8b — Model B: open the umbrella sub-PR/MR here
 

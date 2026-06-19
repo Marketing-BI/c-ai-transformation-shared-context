@@ -155,7 +155,8 @@ Announce completion clearly:
 > "Implementation of `<TICKET-KEY>` complete. N local commits ready on branch `<branch>`. N critical review findings
 > resolved, M recommendations deferred (tracked in <ticket>).
 >
-> Next steps (user's choice): review `git log`, push when ready, then open a PR/MR on your git host."
+> Next steps (user's choice): review `git log`, then run `/dev:pr-prep` followed by `/dev:open-pr` when ready, or
+> push manually and open a PR/MR on your git host."
 
 Stop. Do not push, do not open the PR/MR, do not auto-merge, do not close the ticket, do not move it in Jira. Those
 are user decisions.
