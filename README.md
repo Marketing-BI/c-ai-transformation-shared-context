@@ -12,9 +12,11 @@ The rules are **language-agnostic** — they capture universal engineering and o
 
 This repository is consumed **as plugins** — there is no git submodule and nothing to vendor into your project repos. You point Claude Code at this repository once, enable the plugins you want, and the shared context loads automatically in every session.
 
-## Quick start (individual developer)
+## Install
 
-Add the marketplace and enable the plugins in your project's `.claude/settings.json`:
+Enabling the marketplace and plugins comes down to putting the **same two keys** — `extraKnownMarketplaces` (the marketplace source) and `enabledPlugins` (which plugins to turn on) — into a settings file. *Which* file depends on who you are enabling them for. The three tiers below are **alternatives, not steps** — pick the one that matches your situation.
+
+The block to add (used by every tier) is:
 
 ```json
 {
@@ -25,20 +27,36 @@ Add the marketplace and enable the plugins in your project's `.claude/settings.j
 }
 ```
 
-Replace the URL with the clone URL of this repository on your git host. Commit this file to the project repo so teammates pick up the same plugins; keep personal overrides in `.claude/settings.local.json` (gitignored).
+The marketplace `url` is host-agnostic: it accepts either an `https://…` clone URL or an SSH one (`git@<your-git-host>:<your-org>/shared-ai-context.git`). Trim `enabledPlugins` to the plugins you actually want.
+
+### Tier 1 — Individual developer
+
+*Use this when you just want the plugins for yourself, across all your projects.*
+
+Add the block above to your **user-level** settings at **`~/.claude/settings.json`**. Keep any personal tweaks in **`~/.claude/settings.local.json`**.
 
 Prefer to do it interactively? From inside a Claude Code session:
 
 ```
 /plugin marketplace add https://<your-git-host>/<your-org>/shared-ai-context.git
 /plugin install common@shared-ai-context
+/plugin install dev@shared-ai-context
+/plugin install business@shared-ai-context
 ```
 
-(repeat `/plugin install` for `dev@shared-ai-context` and `business@shared-ai-context` as needed). Use `/plugin` at any time to see which plugins are currently loaded.
+The `add` URL is host-agnostic too — `https://…` or `git@<your-git-host>:…` both work. Use `/plugin` at any time to see which plugins are currently loaded.
 
-## Enable org-wide (administrators)
+### Tier 2 — A whole team on a project
 
-To give every developer these plugins automatically — without each person editing settings — put the **same** `extraKnownMarketplaces` and `enabledPlugins` blocks shown above into Claude Code's **managed settings** file on each machine (or push it via your device-management tooling):
+*Use this when you want everyone working in a particular repository to get the same plugins.*
+
+Commit the block above in the project's **`.claude/settings.json`**, so teammates inherit the marketplace and plugins when they open the repo. Keep personal overrides in **`.claude/settings.local.json`** (gitignored). This is the only tier where committing a settings file is the right move.
+
+### Tier 3 — Org-wide (recommended for rollout)
+
+*Use this when you want every developer to get the plugins automatically, with no per-developer action.*
+
+Administrators put the **same** block into Claude Code's **managed settings** file on each machine (or push it via device-management tooling):
 
 | Platform | Managed settings path |
 |---|---|
@@ -46,7 +64,7 @@ To give every developer these plugins automatically — without each person edit
 | Linux / WSL | `/etc/claude-code/managed-settings.json` |
 | Windows | `C:\Program Files\ClaudeCode\managed-settings.json` |
 
-Managed settings take precedence over per-user and per-project settings, so the marketplace and the plugins you list are enforced everywhere.
+Managed settings take precedence over per-user and per-project settings, so the marketplace and the plugins you list are enforced everywhere — no individual developer needs to touch their own settings.
 
 Pick the plugin set per audience:
 
@@ -71,7 +89,7 @@ Shared rules cover the org. For repo-specific context (stack, architecture, key 
 /dev:claude-md
 ```
 
-in the project. It scaffolds a project `CLAUDE.md` tailored to that repository. Re-run it after structural changes to keep the wiring in sync without disturbing hand-written sections.
+in the project. It scaffolds a project-overview `CLAUDE.md` (stack, architecture, key commands) tailored to that repository. The shared rules do **not** depend on it — they load via the plugin's `SessionStart` hook and on-demand skills, not through imports in `CLAUDE.md`. Re-run it after structural changes to refresh the project overview without disturbing hand-written sections.
 
 ## Bilingual
 

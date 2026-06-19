@@ -50,7 +50,7 @@ This repo does not assume any particular git host. Refer to pull/merge requests 
 
 ## Change process
 
-1. Create a branch from `master`.
+1. Create a branch from your main branch.
 2. Make the change in the correct plugin directory (`common/`, `dev/`, or `business/`); for `common/` changes, weigh the impact on every team.
 3. Update anything affected: plugin `description`s, the marketplace manifest, and the relevant README sections.
 4. Open a PR/MR describing what changed and why, and get review from an owner of each affected plugin (see `CODEOWNERS`).
