@@ -67,4 +67,4 @@ Examples: `feat/PROJ-123-user-auth`, `fix/PROJ-456-null-pointer`, `chore/PROJ-78
 
 ## Opening a PR/MR
 
-Use your git host's CLI or web UI to open the PR/MR. Wire up the specific CLI or MCP tool for your host in your project's `.claude/settings.json` — for example, a Bitbucket CLI, or an Atlassian MCP that exposes PR creation. Once wired, invoke it from here with the title and description generated above.
+Use your git host's CLI or web UI to open the PR/MR. Wire up the specific CLI or MCP tool for your git host in your project's `.claude/settings.json` — for example, a command-line tool for your git host, or an MCP server that exposes PR/MR creation. Once wired, invoke it from here with the title and description generated above.
