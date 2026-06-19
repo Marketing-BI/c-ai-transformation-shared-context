@@ -14,7 +14,8 @@ Step 0: Validate source ($1)
     └─ None?           → STOP, ask user for any source
     │
     ▼
-Step 1: Load all signals (source + Jira context + local repo state)
+Step 1: Load all signals (source + local repo state); ambient Jira+Confluence
+    context via /common:context-pull (scoped by $2 / source topic)
 Step 2: Code-vs-source reconciliation table
     │
     ▼
@@ -33,8 +34,8 @@ Step 5: Git setup (see references/conventions.md for branch naming)
     └─ Model B → umbrella + sub-branch
     │
     ▼
-Step 6: Implement task by task, test-first (superpowers:subagent-driven-development /
-    test-driven-development if installed); local commits via /common:git-commit
+Step 6: Implement task by task → delegate to /dev:implement-from-analysis
+    (it owns the test-first build loop + local commits via /common:git-commit)
     │
     ▼
 Step 7: PRE-PUSH local code review → delegate to /dev:code-review
@@ -43,20 +44,17 @@ Step 7: PRE-PUSH local code review → delegate to /dev:code-review
     surface business-case Client Gaps / Open Questions
     │
     ▼
-Step 7.5: Pre-PR/MR housekeeping — invoke /dev:pr-prep (NO create-PR/MR token)
-    → does the worktree mutations open-pr is read-only about (its own
-      SKILL.md lists them). Commit its changes on the current branch.
-    │
-    ▼
-Step 8: Open the PR/MR — forks by delivery model
-    Model A (single PR/MR) → delegate to /dev:open-pr
-        → it pushes, builds the team-agreed body, requests the reviewer,
-          and asks for the Jira key if it can't resolve one
-    Model B (umbrella/multi-PR/MR) → open the sub-PR/MR HERE (not open-pr)
+Step 8: Open the PR/MR — forks by delivery model. /dev:open-pr is one skill:
+    pre-flight checklist (env vars, version bump, changelog, CLAUDE.md) → push → open
+    Model A (single PR/MR) → one /dev:open-pr call (checklist + push + open)
+        → builds the team-agreed body, requests the reviewer,
+          asks for the Jira key if it can't resolve one
+    Model B (umbrella/multi-PR/MR) → /dev:open-pr prep-only for the checklist,
+        commit it, then open the sub-PR/MR HERE (not the full open-pr)
         8b base ref: umbrella, OR stacked on preceding PR/MR head if still open
         8c body ← references/multi-pr-template.md (open-pr format + series context)
         8d/e title `<TICKET> PR/MR <N>:` + push + create on your git host
-        (pulls version/env/summary from Step 7.5; no reviewer/Jira field here)
+        (pulls version/env/summary from the prep-only run; no reviewer/Jira field here)
     │
     ▼
 Step 9 (Model B): Per-PR/MR loop — repeat 4–8 for next sub-PR/MR; final umbrella merge

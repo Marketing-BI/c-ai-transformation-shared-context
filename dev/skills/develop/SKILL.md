@@ -23,7 +23,7 @@ description: |
 user-invocable: true
 argument-hint: '[source: confluence-url | local-file-path | jira-key | inline-description] [jira-key-or-jql]'
 allowed-tools:
-  Read, Write, Edit, Bash, Glob, Grep, Agent, AskUserQuestion, mcp__atlassian__*
+  Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, AskUserQuestion, mcp__atlassian__*
 effort: xhigh
 ---
 
@@ -51,9 +51,21 @@ before touching new code.
 > `verification-before-completion`, `finishing-a-development-branch`) to drive each one. They are an enhancement, not a
 > requirement — this skill spells out the same discipline in its own words so it is fully self-contained without them.
 
-The independent pre-push review in Step 7 is delegated to **`/dev:code-review`**, which owns the parallel reviewer-agent
-dispatch and triage. The pre-PR/MR housekeeping in Step 7.5 is delegated to **`/dev:pr-prep`**, and the single-PR/MR
-open in Step 8a is delegated to **`/dev:open-pr`**.
+This skill is an **orchestrator**: each heavy stage is owned by a consolidated brick, and develop just sequences them
+(source-of-truth → reconcile → plan → implement → review → open) and keeps the single-vs-multi delivery decision. The
+delegations:
+
+- **Ambient project context** (Jira + Confluence) is loaded via **`/common:context-pull`**.
+- **The build loop** (task-by-task, test-first implementation) is owned by **`/dev:implement-from-analysis`**.
+- **The pre-push review** in Step 7 is delegated to **`/dev:code-review`**, which owns the parallel reviewer-agent
+  dispatch and triage.
+- **The PR/MR open** in Step 8 is delegated to **`/dev:open-pr`** — one skill that runs the pre-flight checklist
+  (env-var propagation, version bump, changelog, `CLAUDE.md` review), then pushes and opens the PR/MR with the reviewer
+  requested. Use `/dev:open-pr prep-only` for the checklist-only path (local file edits, no push).
+- **Confluence publishing** (any durable doc develop writes) is routed through **`/common:confluence-update`**.
+
+Each delegated brick documents its own steps — develop names the brick and the hand-off, it does not restate the
+brick's internals.
 
 ---
 
@@ -105,12 +117,12 @@ Load all available signals based on what's provided.
      parent + siblings.
    - Inline description: parse the user's prompt for goal, constraints, and success criteria.
 
-2. **Jira tasks (`$2` if provided, OR siblings of `$1` if `$1` is itself a Jira key):**
-   - If `$2` looks like an issue/epic key (`[A-Z]+-\d+`): load it, then `searchJiraIssuesUsingJql` with
-     `parent = $2 OR "Epic Link" = $2` to see its children.
-   - If `$2` looks like a project key: `searchJiraIssuesUsingJql` with `project = $2 ORDER BY created DESC`.
-   - If `$2` contains spaces or `=`: use it as JQL directly.
-   - Extract per issue: key, summary, status, parent/epic, assignee.
+2. **Ambient project context (Jira + Confluence):** when you need the broader cross-system picture around the
+   source — related Jira work and the relevant Confluence space — invoke **`/common:context-pull`** rather than
+   re-describing cross-system loading here. Scope it with the `$2` Jira key/epic/JQL (or the source's own ticket key
+   if `$1` is a Jira key) and the source's topic; it pulls Jira + Confluence in one parallel pass and returns a
+   structured summary. (If `$2` and the source give no project scope to pull, skip this — Jira/Confluence context is
+   optional.)
 
 3. **Local repo state:**
    - Read the project `CLAUDE.md` (and any shared rule files it references) for project-specific conventions and
@@ -199,8 +211,10 @@ of unresolved items, and the source summary.
 - Ask **one question at a time**.
 - **Every question must reference a concrete finding** — not a hypothetical. Format: _"Source says X, but
   `<path/to/file>:42` does Y. Which is correct?"_
-- Output: a refined scope for the plan + a list of decisions that should be reflected back into the source (tell the
-  user to update the Confluence page / commit the updated design doc / add a Jira comment).
+- Output: a refined scope for the plan + a list of decisions that should be reflected back into the source. Route any
+  Confluence write through **`/common:confluence-update`** (it owns the durable-doc publish discipline — search before
+  create, page standards, the create/update); commit an updated local design doc directly; add a Jira comment only with
+  explicit user confirmation.
 
 ---
 
@@ -270,26 +284,22 @@ After branch setup, run the test suite (or `build` + `lint` if there's no test r
 
 ## Step 6: Implementation
 
-Execute the plan task by task, applying disciplined test-first development (e.g. via the `superpowers` plugin's
-`subagent-driven-development` and `test-driven-development` skills, if installed; otherwise sequence the tasks
-yourself).
+Execute the approved plan task by task via **`/dev:implement-from-analysis`** — it owns the disciplined test-first
+build loop (TDD when a test runner exists, structured manual verification when there isn't) and local commits, so
+develop does not hand-roll a separate execution loop. Hand it the approved plan file; it drives the tasks to green.
 
-Constraints to carry into every task:
+The constraints develop enforces as the contract for that loop:
 
-- **TDD when a test runner exists**: write a failing test, implement until it passes, commit. Never write the
-  implementation before a test exists.
-- **If the project has no test runner, don't invent one** just for this task — adding a new test framework is its own
-  decision, not a side effect of one feature. Default behaviour: _describe the expected behavior → implement → manually
-  verify → commit_. Verification must be explicit: run the concrete command, check the output, do a visual check. The
-  project `CLAUDE.md` may make this explicit ("do not invent one"); even without that rule, treat it as the default.
-- **No new TODO/FIXME in the code this task adds or changes.** Existing TODO/FIXME in touched files are out of scope —
-  leave them alone. If something is deferred for the current task, add a task to the plan file instead of a comment in
-  the code.
+- **Never invent a test runner** just to satisfy a task — adding a test framework is its own decision, not a side
+  effect of one feature. With no runner, the default is _describe expected behavior → implement → explicitly verify
+  (run the concrete command, check output) → commit_. The project `CLAUDE.md` may state this; treat it as the default
+  regardless.
+- **No new TODO/FIXME in the code this task adds or changes.** Existing TODO/FIXME in touched files are out of scope.
+  Deferred work goes into the plan file, not a code comment.
 - **Don't break existing interfaces** without a documented reason.
-- **Run the full test suite (or `build` + `lint` if no tests) after each task** before starting the next.
-- Make local commits via `/common:git-commit` (conventional commits, imperative mood, explain *why* not *what*).
-- If a task corresponds to an existing Jira issue, you may transition its status — but **only with explicit user
-  confirmation in chat** (e.g. via `/common:jira-update` or `mcp__atlassian__transitionJiraIssue`).
+- Local commits go through `/common:git-commit` (conventional, imperative, explain *why*).
+- If a task corresponds to an existing Jira issue, transition its status **only with explicit user confirmation**
+  (`/common:jira-update`).
 
 For **model B (multi-PR/MR)**: implementation is per current PR/MR only. Do not batch all PRs/MRs into one
 implementation block — finish the current PR/MR's work, push and merge it, then come back to write & implement the next
@@ -306,17 +316,13 @@ reference the local review summary.
 **Critical**: run this for **EVERY** push that opens or updates a PR/MR. In model B, this means before each sub-PR/MR
 push. In model A, this means before the final push.
 
-Delegate the review to **`/dev:code-review`** — it owns the full QA machinery: scope resolution via
-`references/dispatch-matrix.md`, parallel reviewer-agent dispatch, finding compilation and deduplication, a triage
-gate, and user-gated fixes. This is heavier than `/dev:implement-from-analysis`'s direct reviewer dispatch (which
-fires parallel `Agent` calls with no triage gate), and that extra weight is appropriate for the pre-push gate. Do
-**not** hand-roll a separate review here.
+Delegate the review to **`/dev:code-review`** — it owns the full QA machinery (scope resolution, parallel
+reviewer-agent dispatch, finding dedup, the triage gate, user-gated fixes); its own SKILL.md documents the steps.
+Do **not** hand-roll a separate review here.
 
-- **Scope to pass it**: the exact diff range for the current push — `git diff <base-ref>...HEAD`
-  (Model A: base = default branch; Model B: base = umbrella, or the preceding PR/MR head if stacked). You can also pass
-  the plan file path and the source (Confluence URL / local doc path / Jira key + summary) as context.
-- The reviewer agents run outside the main context and read their own rules — `/dev:code-review` handles that handoff;
-  you don't pre-load rules for them here.
+**Scope to pass it**: the exact diff range for the current push — `git diff <base-ref>...HEAD` (Model A: base = default
+branch; Model B: base = umbrella, or the preceding PR/MR head if stacked), plus the plan file path and the source
+(Confluence URL / local doc path / Jira key + summary) as context.
 
 **Action on findings** (`/dev:code-review` triages and drives these; this is the contract `develop` enforces):
 
@@ -339,52 +345,33 @@ confirm the fix is correct. Don't re-run reviewers whose area didn't change.
 
 ---
 
-## Step 7.5: Pre-PR/MR housekeeping (`/dev:pr-prep`)
-
-After Step 7's review fixes are committed, before push. `/dev:open-pr` is read-only with respect to the worktree — it
-never propagates env vars or bumps the version, it only reads them. Those mutations are `/dev:pr-prep`'s job, so run it
-here.
-
-Invoke **`/dev:pr-prep`** — **with no argument** (no "create PR/MR" token; PR/MR creation stays in Step 8). It
-propagates new env vars, bumps the version, appends the changelog, and reviews `CLAUDE.md` — its own SKILL.md documents
-the steps, don't restate them here. **Commit the files it changes** (env files, the version/manifest file, the
-changelog, `CLAUDE.md`) on the current branch before Step 8.
-
-Its version / env / summary then feed Step 8: **Model A** — `/dev:open-pr` reads them off the branch diff via its own
-handoff contract (nothing to forward by hand); **Model B** — drop them into the `references/multi-pr-template.md` body.
-Either way, don't regenerate them.
-
----
-
 ## Step 8: Open the PR/MR (the mechanism forks by delivery model)
 
-After Step 7 review fixes and Step 7.5 housekeeping commits are on the branch, open the PR/MR. **How** depends on the
-delivery model chosen in Step 4a:
+After Step 7's review fixes are committed on the branch, open the PR/MR. **`/dev:open-pr`** is one skill that runs the
+pre-flight checklist (propagate new env vars, bump the version, append the changelog, review `CLAUDE.md`, summarize the
+change) and then pushes + opens the PR/MR with the reviewer requested. **How** you use it depends on the delivery model
+chosen in Step 4a:
 
-- **Model A (single PR/MR)** → delegate the whole open entirely to the **`/dev:open-pr`** skill. Its PR/MR body is the
-  team-agreed standard, and it also requests the configured reviewer. Don't hand-roll a body.
-- **Model B (umbrella / multi-PR/MR)** → **do not use `/dev:open-pr`** — its single-base, single-ticket assumptions
-  don't fit umbrella / stacked branches. Open the sub-PR/MR here, composing the body from
-  `references/multi-pr-template.md`, which is a copy of the open-pr body format adapted for a PR/MR series so umbrella
-  sub-PRs/MRs still look like the team standard.
+- **Model A (single PR/MR)** → delegate the whole thing to **`/dev:open-pr`** in one call (checklist + push + open).
+- **Model B (umbrella / multi-PR/MR)** → its single-base, single-ticket open doesn't fit umbrella / stacked branches,
+  so run **`/dev:open-pr prep-only`** for just the checklist mutations, commit them, then open the sub-PR/MR by hand
+  from `references/multi-pr-template.md` (the open-pr body format + a series-context section).
 
 ### 8a — Model A: delegate to `/dev:open-pr`
 
-Just invoke it — **`/dev:open-pr`** (add a `draft` token if it should be a draft, and a reviewer token if the user
-named one; otherwise it prompts for the reviewer). It owns the whole open: push, the existing-PR/MR check, the
-team-agreed body, the push + PR/MR creation on your git host, the reviewer request, and (if the project wires it) the
-Jira review field. If it can't resolve the Jira key from the branch / commits, it asks the user for it.
+Just invoke **`/dev:open-pr`** (add a `draft` token if it should be a draft, and a reviewer token if the user named
+one; otherwise it prompts for the reviewer). It owns the whole flow end-to-end: the pre-flight checklist, the
+existing-PR/MR check, the team-agreed body, push + PR/MR creation on your git host, the reviewer request, and (if the
+project wires it) the Jira review field. If it can't resolve the Jira key from the branch / commits, it asks the user.
+Its own SKILL.md documents the internals — don't restate or duplicate them here.
 
-`/dev:open-pr` already documents how it consumes `/dev:pr-prep` output — don't restate it here. The Step 7.5
-housekeeping is already committed on the branch, so it derives `Version` / `Environment variables` read-only from the
-diff. Don't re-implement or duplicate any of that.
+### 8b — Model B: prep then open the umbrella sub-PR/MR here
 
-Note: the `<!-- pr-prep:summary -->` block produced by the Step 7.5 `pr-prep` run is **not forwarded** to
-`/dev:open-pr` — `open-pr` derives the PR/MR summary from the branch diff via its own standalone fallback. If you
-want the curated `pr-prep` summary in the PR/MR body, invoke `pr-prep` in Step 7.5 with its create token so it
-chains directly to `open-pr` instead of stopping here.
-
-### 8b — Model B: open the umbrella sub-PR/MR here
+First run **`/dev:open-pr prep-only`** — it runs only the pre-flight checklist (env-var propagation, version bump,
+changelog, `CLAUDE.md` review) and stops without pushing or opening anything. **Commit the files it changes** (env
+files, version/manifest file, changelog, `CLAUDE.md`) on the current branch, then open the sub-PR/MR here. Pull the
+resulting `Version` / `Environment variables` / change summary into the `references/multi-pr-template.md` body — don't
+regenerate them.
 
 1. **Language** — default to English for the body + title; ask only on a concrete signal otherwise (the user said so,
    the source is in another language, or a prior PR/MR in the series used one).
@@ -395,7 +382,7 @@ chains directly to `open-pr` instead of stopping here.
      (see `references/conventions.md` and `references/multi-pr-template.md`).
 3. **Compose the body** from `references/multi-pr-template.md` — read it first. It mirrors the open-pr section order and
    adds the series-context section, previous-PR/MR discovery, and the stacked-base note. Pull `Version` /
-   `Environment variables` from Step 7.5 — don't recompute them.
+   `Environment variables` from the `prep-only` checklist run above — don't recompute them.
 4. **Title:** `<TICKET> PR/MR <N>: <short summary>` (under ~80 chars).
 5. **Push + create** the PR/MR on your git host:
    - Push the sub-branch: `git push -u origin <branch-name>`.
@@ -447,6 +434,9 @@ Wrap up:
 
 ## Important Reminders
 
+- **Develop orchestrates; the bricks do the work.** Ambient context via `/common:context-pull`, the build loop via
+  `/dev:implement-from-analysis`, the review via `/dev:code-review`, the PR/MR open via `/dev:open-pr`, and any
+  Confluence publish via `/common:confluence-update`. Don't re-describe a brick's internals — name it and hand off.
 - **Source flexibility:** any of Confluence / local file / Jira / inline description is valid. If multiple are
   provided, use them all; the richest one is primary scope.
 - **Brainstorming is the default.** Skip only when the change is small + isolated AND the source is rich AND
@@ -455,14 +445,12 @@ Wrap up:
 - **Code review BEFORE push, every push.** Delegate to `/dev:code-review` (it selects and dispatches the `dev:`
   reviewer agents in parallel and triages). Fix Critical Issues + contract gaps before push; decide Recommendations
   with the user; surface business-case Client Gaps / Open Questions only.
-- **Run `/dev:pr-prep` before push (Step 7.5)** — without a create-PR/MR token. It propagates new env vars, bumps the
-  version, appends the changelog, reviews `CLAUDE.md`, and emits the change summary. Its artifacts feed Step 8's PR/MR
-  body — do not regenerate them.
-- **PR/MR opening forks by delivery model.** Model A → delegate to `/dev:open-pr` (team-agreed body + reviewer). Model B
-  → open here with `references/multi-pr-template.md` (the open-pr body format + a series-context section). Default
-  language English; ask only on a concrete signal otherwise.
-- **TDD when possible**, structured manual verification when there's no test runner — and don't invent a test runner
-  just for one task.
+- **PR/MR opening forks by delivery model.** `/dev:open-pr` is one skill — pre-flight checklist (env vars, version
+  bump, changelog, `CLAUDE.md`) then push + open. Model A → one `/dev:open-pr` call. Model B → `/dev:open-pr prep-only`
+  for the checklist (commit it), then open the sub-PR/MR here from `references/multi-pr-template.md` (the open-pr body
+  format + a series-context section). Default language English; ask only on a concrete signal otherwise.
+- **Build via `/dev:implement-from-analysis`** — it owns the test-first task loop. Don't invent a test runner just for
+  one task; with no runner, verify manually and explicitly.
 - **No new TODO/FIXME in code this task adds or changes.** Existing TODO/FIXME in touched files are out of scope. Add a
   task to the plan for deferred work instead.
 - **Extensibility:** don't change existing interfaces without reason.

@@ -30,8 +30,8 @@ chars; let the body carry the detail.
 
 ### 1. Summary
 
-One paragraph: what **this** PR/MR delivers and why. Seed it from the `/dev:pr-prep` change summary (Step 7.5). For
-preparation-only PRs/MRs, lead with "No user-visible change — internal `<X>`."
+One paragraph: what **this** PR/MR delivers and why. Seed it from the `/dev:open-pr prep-only` change summary (Step 8b).
+For preparation-only PRs/MRs, lead with "No user-visible change — internal `<X>`."
 
 ### 2. Series context
 
@@ -63,11 +63,12 @@ Omit the note when the PR/MR is rooted directly on the umbrella (the default aft
 
 ### 3. Version
 
-`<old> → <new>` from `/dev:pr-prep` (Step 7.5). Omit the section entirely if there was no bump.
+`<old> → <new>` from the `/dev:open-pr prep-only` checklist run (Step 8b). Omit the section entirely if there was no
+bump.
 
 ### 4. Environment variables
 
-The new env-var list from `/dev:pr-prep` (Step 7.5), or "None". They are already propagated to the env-example file /
+The new env-var list from the `/dev:open-pr prep-only` checklist run (Step 8b), or "None". They are already propagated to the env-example file /
 container compose file / README by that step — this section just reports them.
 
 ### 5. Jira

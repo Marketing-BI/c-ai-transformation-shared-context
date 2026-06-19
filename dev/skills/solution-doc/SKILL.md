@@ -266,12 +266,15 @@ allocate a fresh DR-ID for the new decision — or surface it as an Open Questio
 
 ### Phase 6: Publish to Confluence
 
-After review fixes are approved:
+After review fixes are approved, the solution-doc content (architecture baseline + Decision Records + journeys) is
+ready. **Publishing is delegated to `/common:confluence-update`** — it owns the durable-doc publish discipline
+(search-before-create dedupe, page-structure standards, sensitive-data check, and the create/update mechanics). Do not
+re-implement the Confluence write here.
 
 1. Ask the user for the **parent Confluence page** (URL or ID) and the **page title** (default: `<Feature Name> —
    Solution Document`).
-2. Use `mcp__atlassian__createConfluencePage` to create the page under that parent. If the user asks to update an
-   existing page, use `mcp__atlassian__updateConfluencePage` instead and keep the existing title/parent.
+2. Hand the page (title + the drafted body + parent) to `/common:confluence-update`. If the user asks to update an
+   existing page, pass that page's identity so it updates in place and keeps the existing title/parent.
 3. Return the **page URL and page ID** so the user can hand the ID directly to `/dev:plan <pageId>`.
 
 If the user prefers not to publish (e.g. early draft, internal review only), offer to save the doc to a local path

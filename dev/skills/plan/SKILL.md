@@ -18,8 +18,6 @@ argument-hint: '[Solution document Confluence page URL/ID]'
 allowed-tools:
   - mcp__atlassian__getAccessibleAtlassianResources
   - mcp__atlassian__getConfluencePage
-  - mcp__atlassian__createConfluencePage
-  - mcp__atlassian__updateConfluencePage
   - mcp__atlassian__searchConfluenceUsingCql
   - mcp__atlassian__getConfluencePageDescendants
   - mcp__atlassian__getPagesInConfluenceSpace
@@ -28,6 +26,7 @@ allowed-tools:
   - Glob
   - Bash
   - Agent
+  - Skill
   - AskUserQuestion
   - ExitPlanMode
   - TodoWrite
@@ -400,14 +399,17 @@ recommendation.
 
 **Ask the user:** whether to export, and for a parent page URL or ID.
 
-**Create 3 child pages** under the parent using `mcp__atlassian__createConfluencePage`:
+The plan produces the markdown for **3 child pages** under the parent; **publishing is delegated to
+`/common:confluence-update`** — it owns the durable-doc publish discipline (search-before-create dedupe, page-structure
+standards, sensitive-data check, and the actual create/update mechanics). Do not re-implement the Confluence write here.
+Hand each page (title + body + the parent) to `/common:confluence-update`:
 
 1. **`[Feature Name] — Implementation Plan`** — full plan (sections 1–9).
 2. **`[Feature Name] — Checklist`** — task breakdown with estimates, assignees, status.
 3. **`[Feature Name] — Open Questions`** — unresolved questions, assumptions, pending decisions.
 
-If the user asks to update an EXISTING page rather than create new children, use `mcp__atlassian__updateConfluencePage`
-and keep the existing title/parent.
+If the user asks to update an EXISTING page rather than create new children, pass that page's identity to
+`/common:confluence-update` so it updates in place and keeps the existing title/parent.
 
 > The published plan is the input to `/dev:plan-to-jira-tickets`, which creates Stories + Sub-tasks under an existing
 > Jira Epic from it.
@@ -425,7 +427,6 @@ and keep the existing title/parent.
 7. Run the **Review Triage** step: classify every reviewer suggestion (Blocker / In-scope / Out-of-scope), anchor each
    Blocker to the solution doc, compute the effort delta, and present the triage table to the user. Apply only
    user-approved items. Record everything else under **Out-of-Scope / Follow-Ups**. Never auto-fold reviewer output.
-8. On sign-off, ask the user whether to create new Confluence pages or update an existing one. Never ask to proceed with
-   implementation.
-</content>
-</invoke>
+8. On sign-off, ask the user whether to create new Confluence pages or update an existing one, then publish via
+   **`/common:confluence-update`** (it owns the dedupe / page-standards / create-update mechanics). Never ask to proceed
+   with implementation.
