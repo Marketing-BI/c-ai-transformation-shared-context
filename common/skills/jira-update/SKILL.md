@@ -32,8 +32,8 @@ Update the relevant Jira issue whenever you:
 Move the ticket to the correct status based on where work is. The exact transitions available depend on the
 project's workflow — always retrieve them first rather than guessing:
 
-Use `mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_transitions` to retrieve valid transitions from the
-current status, then `mcp__claude_ai_Connectivity_Hub__atlassian__jira_transition_issue` to apply the change.
+Use `jira_get_transitions` to retrieve valid transitions from the
+current status, then `jira_transition_issue` to apply the change.
 
 Common transition patterns (your project's workflow may differ):
 
@@ -62,7 +62,7 @@ not for every minor action. When adding a comment, include:
 Do **not** include raw commit messages or commit hashes — they are noise to anyone who is not in the code.
 Keep comments factual and concise — they are the delivery audit trail, not a personal log.
 
-Use `mcp__claude_ai_Connectivity_Hub__atlassian__jira_add_comment`.
+Use `jira_add_comment`.
 
 ### Step 3 — Associate PRs/MRs and note dependencies
 

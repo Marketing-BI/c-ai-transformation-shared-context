@@ -23,14 +23,14 @@ Do not re-implement ticket creation logic here — follow the flow defined in `/
 
 Exposing:
 
-- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites` (read — list Atlassian sites)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (write — switch site, only if multi-site)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_create_issue` (write — used via `/common:create-jira-ticket`)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` (read)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_search` (read, for idempotency check)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_user_info` (read, for assignee resolution)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_transitions` (read, for status transition)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_transition_issue` (write, for setting TO-DO status)
+- `atlassian_list_sites` (read — list Atlassian sites)
+- `atlassian_set_active_site` (write — switch site, only if multi-site)
+- `jira_create_issue` (write — used via `/common:create-jira-ticket`)
+- `confluence_get_page` (read)
+- `jira_search` (read, for idempotency check)
+- `atlassian_user_info` (read, for assignee resolution)
+- `jira_get_transitions` (read, for status transition)
+- `jira_transition_issue` (write, for setting TO-DO status)
 
 If any are missing, stop with a clear error naming the missing tool.
 

@@ -16,12 +16,6 @@ model: opus
 effort: xhigh
 argument-hint: '[Solution document Confluence page URL/ID]'
 allowed-tools:
-  - mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites
-  - mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site
-  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page
-  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_search
-  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page_descendants
-  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_pages_in_space
   - Read
   - Grep
   - Glob
@@ -41,13 +35,13 @@ results against scope, and create or update Confluence pages on sign-off.
 ## Input
 
 The input to this skill is a **solution document on a Confluence page** — fetch it with
-`mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` before drafting. If the user has not provided a Confluence page URL/ID for the
+`confluence_get_page` before drafting. If the user has not provided a Confluence page URL/ID for the
 solution doc, ask for it before proceeding.
 
 > Hub Atlassian tools use the connection's active site — you don't pass a `cloudId`. If your team works across
 > multiple sites and the default isn't the right one, switch once at the start of the run with
-> `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (find the `cloud_id` via
-> `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites`).
+> `atlassian_set_active_site` (find the `cloud_id` via
+> `atlassian_list_sites`).
 
 ## Mode & Execution
 
@@ -168,7 +162,7 @@ If your organization maintains a canonical implementation-plan checklist in Conf
 planning session and conform the plan to it — do NOT copy it into this skill:
 
 ```text
-mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page
+confluence_get_page
   page_id: <your org's checklist page ID>
 ```
 
@@ -378,7 +372,7 @@ its gaps at plan-time fragments the source of truth and means the next plan iter
    - **(c) Accept the gap explicitly** — only if the user judges it not worth fixing now. Record under **Open
      Questions** with the upstream owner and the impact on the plan's correctness.
 4. **Re-fetch if (a) was chosen.** Re-fetch the Confluence solution-doc page in full via
-   `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page`. Refresh carried-forward DRs and journey enumerations. Do not work from
+   `confluence_get_page`. Refresh carried-forward DRs and journey enumerations. Do not work from
    memory of the prior version.
 5. **Resume planning** from the paused section.
 

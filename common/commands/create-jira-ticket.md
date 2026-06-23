@@ -11,10 +11,10 @@ Create one Jira ticket conversationally, with a preview gate before the MCP call
 
 Requires the **Hub's Atlassian connector** configured and exposing:
 
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_create_issue` (write)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_user_info` (read, for assignee resolution)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_transitions` (read, for status transition)
-- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_transition_issue` (write, for setting TO-DO status)
+- `jira_create_issue` (write)
+- `atlassian_user_info` (read, for assignee resolution)
+- `jira_get_transitions` (read, for status transition)
+- `jira_transition_issue` (write, for setting TO-DO status)
 
 If any are missing, stop with a clear error naming the missing tool.
 

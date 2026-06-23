@@ -23,7 +23,7 @@ description: |
 user-invocable: true
 argument-hint: '[source: jira-key | confluence-url | local-file-path | inline-description] [jira-key-or-jql]'
 allowed-tools:
-  Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, AskUserQuestion, mcp__claude_ai_Connectivity_Hub__atlassian__*
+  Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, AskUserQuestion
 effort: xhigh
 ---
 
@@ -126,7 +126,7 @@ Proceed to **Step 2**.
 
 ### 1b — Confluence URL
 
-Fetch the page **read-only** via `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` (it returns the body
+Fetch the page **read-only** via `confluence_get_page` (it returns the body
 as Markdown; the Hub uses the active Atlassian site, so no `cloudId` is passed). Extract title + body. **No code scan.** Treat the
 fetched content as the plan input. **Skip Step 2** — proceed to **Step 3**.
 

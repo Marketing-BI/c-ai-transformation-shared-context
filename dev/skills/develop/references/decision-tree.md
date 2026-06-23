@@ -27,7 +27,7 @@ Step 1: Dispatch + load by source type
     │                  structured context dump — no Q&A, no plan)
     │                 → continue to Step 2
     │
-    ├─ Confluence → mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page (read-only; no code scan)
+    ├─ Confluence → confluence_get_page (read-only; no code scan)
     │                 → SKIP Step 2 → Step 3
     │
     ├─ Local file → Read
@@ -106,7 +106,7 @@ Step 7: Finish — superpowers:finishing-a-development-branch (if installed);
 | ------------------------------------------- | ------------------------------------------------------------ |
 | Validate input source                       | `/dev:develop` (Step 0)                                       |
 | Load + code scan (Jira)                     | `/dev:analyze-jira-ticket` (load + scan + context dump)       |
-| Load only (Confluence)                      | `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` (inline in develop 1b)   |
+| Load only (Confluence)                      | `confluence_get_page` (inline in develop 1b)   |
 | Load only (local file)                      | `Read` (inline in develop 1c)                                |
 | Load only (inline)                          | none — use prompt as-is (develop 1d)                         |
 | Wider cross-system context (optional)       | `/common:context-pull` (only when source-dispatch isn't enough) |

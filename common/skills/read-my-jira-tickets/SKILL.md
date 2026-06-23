@@ -43,12 +43,12 @@ direct JQL search instead.
 
 Hub Atlassian tools run against the connection's **active site** — you do not pass a `cloudId`. Usually the default
 is correct, so just run the query. Only if the user works across multiple Atlassian sites and the default is wrong:
-call `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites` to see the options and
-`mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (with the target `cloud_id`) to switch.
+call `atlassian_list_sites` to see the options and
+`atlassian_set_active_site` (with the target `cloud_id`) to switch.
 
 ### Step 2: Run the JQL query
 
-Use `mcp__claude_ai_Connectivity_Hub__atlassian__jira_search` with this JQL:
+Use `jira_search` with this JQL:
 
 ```
 assignee = currentUser() AND statusCategory != Done ORDER BY status ASC, updated DESC

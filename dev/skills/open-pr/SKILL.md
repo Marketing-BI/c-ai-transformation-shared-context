@@ -24,7 +24,7 @@ description: |
   ticket (use /common:jira-update).
 user-invocable: true
 allowed-tools:
-  Read, Write, Edit, Bash, Glob, Grep, Skill, AskUserQuestion, mcp__claude_ai_Connectivity_Hub__atlassian__*
+  Read, Write, Edit, Bash, Glob, Grep, Skill, AskUserQuestion
 ---
 
 # Open PR/MR
@@ -73,7 +73,7 @@ PR/MR body via a quoted heredoc when the CLI takes it on the command line, so ta
 ## Issue tracker (Jira) integration
 
 The Jira ticket key drives the PR/MR title and the Jira link in the body. Jira reads use the Hub's Atlassian
-connector (`mcp__claude_ai_Connectivity_Hub__atlassian__*`), which runs against the connection's **active site** — you
+connector, which runs against the connection's **active site** — you
 do not pass a `cloudId`. The default active site is normally correct.
 
 - **Atlassian site** — if your team works across more than one Atlassian site, select it once at the start of Phase 2
@@ -177,8 +177,8 @@ Resolve up front and keep for the rest of the run:
 
 1. **Active Atlassian site** — Hub Atlassian tools use the connection's active site; you don't pass a `cloudId`. If your
    team works across multiple sites and the default isn't the one holding this ticket, call
-   `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites` and switch with
-   `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (its `cloud_id`). Otherwise skip this.
+   `atlassian_list_sites` and switch with
+   `atlassian_set_active_site` (its `cloud_id`). Otherwise skip this.
 
 2. **`currentUser`** — the current user's handle on your git host (query it via your host's CLI/MCP, e.g. a "whoami" /
    current-user lookup). Used in step 2 to prevent self-review. If it can't be resolved (host not authenticated), halt
@@ -195,7 +195,7 @@ Halt with a clear message if the user cannot provide a key — do not invent one
 **Verify the key exists** before going further:
 
 ```yaml
-mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_issue
+jira_get_issue
   issue_key: <TICKET>
 ```
 

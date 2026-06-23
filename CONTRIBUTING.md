@@ -48,6 +48,22 @@ Every command and skill `description` must list **matched Czech and English** tr
 
 This repo does not assume any particular git host. Refer to pull/merge requests generically as **PR/MR**, and to "your git host's CLI or web UI" rather than a specific tool. Keep skill and command names host-neutral (`git-pr`, `open-pr`). Where a workflow needs the host's CLI or MCP, note that the consuming org wires it in — do not hard-code a specific host.
 
+## MCP tool references
+
+When a skill or command calls an MCP tool, reference it by its **bare tool name** — `jira_get_issue`, `confluence_get_page`, `atlassian_list_sites` — never with the `mcp__<server>__…` prefix.
+
+The `mcp__<server>__` segment is the **local MCP server name**, which varies per user and org: the same Atlassian connector might be `mcp__claude_ai_Connectivity_Hub__…` for one person and `mcp__claude_ai_MBI_stage__…` for another. Hardcoding it couples the skill to one environment and silently breaks it everywhere else. The bare tool name is stable, and Claude resolves it to whatever the local server is actually called.
+
+For the same reason, **do not list MCP tools in `allowed-tools` frontmatter.** That field matches only a literal `mcp__<server>__…` name (no server-agnostic wildcard exists), and it merely *pre-approves* a tool to skip the permission prompt — it does **not** gate function, so omitting it never blocks a call. A bare name there would match nothing.
+
+To pre-approve the connector and skip per-tool prompts, the consuming org allows the server **once at the settings level**, where its name is known:
+
+```json
+{ "permissions": { "allow": ["mcp__<your-mcp-server>__*"] } }
+```
+
+This keeps the variable server name in each environment's settings, never baked into the shared skills.
+
 ## Change process
 
 1. Create a branch from your main branch.

@@ -74,13 +74,13 @@ For the given key, gather:
 
 Hub Atlassian tools run against the connection's **active site** — you do not pass a `cloudId`. Usually the default
 is correct, so just call the tools. Only if the user works across multiple Atlassian sites and you need a different
-one: call `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites` to see the options and
-`mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (with the target `cloud_id`) to switch. If a
+one: call `atlassian_list_sites` to see the options and
+`atlassian_set_active_site` (with the target `cloud_id`) to switch. If a
 call fails because the wrong site is active, switch and retry.
 
 ### Step 2: Fetch the ticket
 
-Call `mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_issue` with `issue_key: <TICKET>`. The response is a
+Call `jira_get_issue` with `issue_key: <TICKET>`. The response is a
 curated object: `key`, `summary`, `status`, `type`, `priority`, `assignee`, `reporter`, `labels`, `created`,
 `updated`, `url`, `description` (Markdown), and `comments` (recent, each with `author`, `created`, `body` in
 Markdown). There is no `cloudId`, `fields` selector, attachment, or issue-link data.
@@ -89,9 +89,9 @@ Markdown). There is no `cloudId`, `fields` selector, attachment, or issue-link d
 
 Scan the `description` and every comment `body` for Confluence URLs — match patterns like
 `*.atlassian.net/wiki/spaces/.../pages/<ID>/...`. For each, extract the page ID (the numeric segment after
-`/pages/`) and call `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` with `page_id: <ID>`. When a
+`/pages/`) and call `confluence_get_page` with `page_id: <ID>`. When a
 page likely carries decision context discussed on the ticket (e.g. a comment says "see the Confluence comment"),
-also fetch its comments via `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page_comments` (one call
+also fetch its comments via `confluence_get_page_comments` (one call
 returns footer and inline comments).
 
 If you find more than 5 distinct Confluence pages, list them and ask the user which to fetch — don't silently pull
