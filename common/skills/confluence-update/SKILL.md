@@ -85,6 +85,18 @@ Every page must have:
 - Update the `Last updated` date after any meaningful change
 - Use `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_update_page`
 
+### Step 5 — Does this change belong in the context index?
+
+Only after a **large or structural** change (new space, reorg, a page moved/deleted) — skip for routine edits.
+
+Load the index with the `context__get_index` tool (or ask the user for its URL) and check: **is the affected
+space/area already in it?** The index points at spaces/landing pages, not individual pages, so:
+
+- **Already linked** → do nothing. The index already routes there; the space carries the new content.
+- **Not there, or a linked page is now dead/renamed** → look at the index's structure, work out where it would fit,
+  and propose **one** concrete fix (what + which section) to the user. Ask whether they want it applied; if yes,
+  update the index page directly (a link plus one short sentence — never paste content), preserving its structure.
+
 ## Edge cases and failure modes
 
 - **Duplicate page found** — surface the existing page to the user and ask whether to update it or create a new
