@@ -1,12 +1,13 @@
 # Shared AI Context
 
-A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace that gives every team a consistent, shared baseline for AI-assisted work. It ships three plugins:
+A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace that gives every team a consistent, shared baseline for AI-assisted work. It ships four plugins:
 
 | Plugin | For whom | What it carries |
 |---|---|---|
 | **`common`** | Everyone | Org-wide behavior and coding standards, shared git and Jira slash commands, Jira & Confluence skills, a context-pull agent, code-review standards, and a prompt/skill evaluation pipeline. |
 | **`dev`** | Engineering teams | Language-agnostic software-delivery context: coding standards, conditional convention skills (backend, database, docker, testing), the Jira → analysis → implementation → review → PR workflow, planning and solution-doc skills, project `CLAUDE.md` scaffolding, and independent reviewer agents. |
 | **`business`** | Commercial teams | Generic CRM operating discipline, interactive Statement of Work and Business Brief generators, ICP / customer-intelligence research, and discovery / sales-call coaching. |
+| **`context`** | Everyone | Working with company context. Its `SessionStart` hook injects an always-on rule that points Claude at the org's `context__get_index` MCP tool (the navigation index of where company info lives) and tells it to call that tool first for company-specific questions. Plus two skills: `context-create` (build the navigation index page) and `context-validate` (audit it for dead links / drift). |
 
 The rules are **language-agnostic** — they capture universal engineering and operating principles, so teams can layer their own stack (Java, Kotlin, Swift, or anything else) on top.
 
@@ -23,7 +24,7 @@ The block to add (used by every tier) is:
   "extraKnownMarketplaces": {
     "shared-ai-context": { "source": { "source": "url", "url": "https://<your-git-host>/<your-org>/shared-ai-context.git" } }
   },
-  "enabledPlugins": { "common@shared-ai-context": true, "dev@shared-ai-context": true, "business@shared-ai-context": true }
+  "enabledPlugins": { "common@shared-ai-context": true, "dev@shared-ai-context": true, "business@shared-ai-context": true, "context@shared-ai-context": true }
 }
 ```
 
@@ -69,6 +70,7 @@ Managed settings take precedence over per-user and per-project settings, so the 
 Pick the plugin set per audience:
 
 - **`common`** — enable everywhere; it is the shared baseline.
+- **`context`** — enable everywhere; it points Claude at the company context index.
 - **`dev`** — enable for engineering teams.
 - **`business`** — enable for commercial teams.
 
@@ -102,6 +104,7 @@ Skills and commands respond to both **Czech and English** triggers, so the same 
 common/                           # Org-wide standards, shared commands, Jira/Confluence skills, code-review, eval pipeline
 dev/                              # Software-delivery context: conventions, workflow, planning, reviewer agents
 business/                         # CRM discipline, SOW/Brief generators, prospecting, sales-call coaching
+context/                          # Company-context rule (SessionStart hook → context__get_index) + context-create / context-validate skills
 CODEOWNERS                        # Review ownership (placeholder teams — update for your org)
 CONTRIBUTING.md                   # How to extend this repo
 ```
