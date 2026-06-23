@@ -7,9 +7,8 @@ description: |
   propagate them to the env-example file / container compose file / README, bump the project's version file, append a
   CHANGELOG entry, review CLAUDE.md, and summarize the changes). Phase 2 resolves a Jira ticket key from the current
   branch (or recent commits), resolves a reviewer from the project's team mapping (or by asking the user), pushes the
-  branch, opens the PR/MR on your git host with that person requested as reviewer, and optionally sets your issue
-  tracker's reviewer/QA field if your team wires one. Run `prep-only` to stop after Phase 1 (checklist, no push, no
-  PR/MR). Host-agnostic and language-agnostic — the client wires their git host's CLI or MCP. Defers to /common:git-pr
+  branch, opens the PR/MR on your git host with that person requested as reviewer. Run `prep-only` to stop after
+  Phase 1 (checklist, no push, no PR/MR). Host-agnostic and language-agnostic — the client wires their git host's CLI or MCP. Defers to /common:git-pr
   for the PR/MR title/description conventions. Never transitions Jira status — use /common:jira-update for that.
 
   English triggers: "prep pr", "prep mr", "prepare pr", "prepare mr", "pre-pr checklist", "ready for pr", "ready for mr",
@@ -25,7 +24,7 @@ description: |
   ticket (use /common:jira-update).
 user-invocable: true
 allowed-tools:
-  Read, Write, Edit, Bash, Glob, Grep, Skill, AskUserQuestion, mcp__atlassian__*
+  Read, Write, Edit, Bash, Glob, Grep, Skill, AskUserQuestion, mcp__claude_ai_Connectivity_Hub__atlassian__*
 ---
 
 # Open PR/MR
@@ -34,7 +33,7 @@ Get the current branch ready for review and open a pull/merge request on your gi
 
 - **Phase 1 — pre-flight checklist** (steps P1–P5): propagate new env vars, bump the version, append a CHANGELOG entry,
   review `CLAUDE.md`, and produce a change summary. Local file edits only — no push, no PR/MR.
-- **Phase 2 — push + open** (steps 0–7): resolve the Jira key + reviewer, push the branch, and open the PR/MR with the
+- **Phase 2 — push + open** (steps 0–6): resolve the Jira key + reviewer, push the branch, and open the PR/MR with the
   reviewer requested. The Phase-1 summary feeds the PR/MR body directly.
 
 Run with `prep-only` to stop after Phase 1.
@@ -73,23 +72,18 @@ PR/MR body via a quoted heredoc when the CLI takes it on the command line, so ta
 
 ## Issue tracker (Jira) integration
 
-The Jira ticket key drives the PR/MR title and the Jira link in the body. Jira reads use the Atlassian MCP
-(`mcp__atlassian__*`). Resolve the right `cloudId` once at the start of Phase 2 (see Setup) and reuse it for every
-Atlassian MCP call.
+The Jira ticket key drives the PR/MR title and the Jira link in the body. Jira reads use the Hub's Atlassian
+connector (`mcp__claude_ai_Connectivity_Hub__atlassian__*`), which runs against the connection's **active site** — you
+do not pass a `cloudId`. The default active site is normally correct.
 
-- **Atlassian site** — your Jira site host (e.g. `«your-jira-site»`), used only to pick the right resource from
-  `getAccessibleAtlassianResources`; never passed as `cloudId` directly.
-- **Optional reviewer/QA field** — if your team tracks the reviewer/QA on the issue, set that field too (step 6). This
-  is **opt-in and configurable**: put your tracker's field id in `references/team-mapping.md`. With no field configured,
-  skip that step entirely. **No custom field is hardcoded here.**
+- **Atlassian site** — if your team works across more than one Atlassian site, select it once at the start of Phase 2
+  (see Setup) with `atlassian_set_active_site`; otherwise just call the tools.
 
 ## Team mapping
 
 The reviewer roster (email ↔ git-host handle ↔ display name) lives in
 [`references/team-mapping.md`](references/team-mapping.md) as a **placeholder template the client fills in with their own
-team**. Edit that table to add or remove people. If your tracker has a reviewer/QA account id, the skill resolves it at
-runtime by looking the person up in your issue tracker by email (via the Atlassian MCP account-lookup call) — it is not
-stored in the table.
+team**. Edit that table to add or remove people.
 
 ---
 
@@ -162,34 +156,29 @@ version `old → new` (P2) in scope too — they populate the **Environment vari
 
 ## Phase 2 — Push + open the PR/MR
 
-Push the current branch and open a pull/merge request on your git host, with the chosen reviewer requested. Optionally
-also set a reviewer/QA field on the linked issue if your team uses one. The change summary, env-var list, and version
-bump from Phase 1 feed the PR/MR body directly.
+Push the current branch and open a pull/merge request on your git host, with the chosen reviewer requested. The change
+summary, env-var list, and version bump from Phase 1 feed the PR/MR body directly.
 
 Copy this checklist and check items off as you go:
 
 ```text
-- [ ] 0. Setup: resolve Jira cloudId + current git-host user
+- [ ] 0. Setup: confirm active Atlassian site (only if multi-site) + current git-host user
 - [ ] 1. Resolve Jira ticket key (and verify it exists)
 - [ ] 2. Resolve reviewer (team mapping → ask if unknown), excluding self
 - [ ] 3. Ensure branch is pushed
 - [ ] 4. Check for an existing PR/MR on this branch
 - [ ] 5. Build PR/MR title + body, confirm, create
-- [ ] 6. (Optional) Set the issue tracker's reviewer/QA field — only if configured
-- [ ] 7. Print final output (PR/MR URL + Jira link)
+- [ ] 6. Print final output (PR/MR URL + Jira link)
 ```
 
 ### 0. Setup
 
-Resolve two things up front and keep them as variables for the rest of the run:
+Resolve up front and keep for the rest of the run:
 
-1. **`cloudId`** — call `mcp__atlassian__getAccessibleAtlassianResources` and pick the resource whose `url` matches your
-   Jira site. Use that resource's `id` as `cloudId` for every later Atlassian MCP call. If no matching resource is
-   returned, halt with:
-
-   ```text
-   No accessible Atlassian resource for your Jira site. Re-auth the Atlassian MCP and retry.
-   ```
+1. **Active Atlassian site** — Hub Atlassian tools use the connection's active site; you don't pass a `cloudId`. If your
+   team works across multiple sites and the default isn't the one holding this ticket, call
+   `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites` and switch with
+   `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (its `cloud_id`). Otherwise skip this.
 
 2. **`currentUser`** — the current user's handle on your git host (query it via your host's CLI/MCP, e.g. a "whoami" /
    current-user lookup). Used in step 2 to prevent self-review. If it can't be resolved (host not authenticated), halt
@@ -206,10 +195,8 @@ Halt with a clear message if the user cannot provide a key — do not invent one
 **Verify the key exists** before going further:
 
 ```yaml
-mcp__atlassian__getJiraIssue
-  cloudId: <cloudId from step 0>
-  issueIdOrKey: <TICKET>
-  fields: ["summary", "description"]
+mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_issue
+  issue_key: <TICKET>
 ```
 
 - **Not found** → ask the user via `AskUserQuestion` to confirm the key or supply the right one, then re-verify. Halt if
@@ -233,20 +220,7 @@ the point.
 5. With the resolved row (`email`, git-host `handle`, `displayName`), you have everything needed to request the reviewer
    on the PR/MR in step 5.
 
-   **Only if** your team wires the optional issue-tracker reviewer/QA field (step 6), also resolve the tracker account
-   id now — look the person up in your issue tracker by email with the Atlassian MCP account-lookup call:
-
-   ```yaml
-   <atlassian-mcp-account-lookup>
-     cloudId: <cloudId from step 0>
-     query: <email>
-   ```
-
-   - Multiple results → pick the one whose tracker email exactly matches `<email>`. If still ambiguous, prompt the user.
-   - Zero results → the tracker has no account for this person; skip the optional field update in step 6 (the PR/MR
-     reviewer request still proceeds) and note it for the user.
-
-Output of this step: `{ email, handle, displayName }` (plus `jiraAccountId` if the optional field is configured).
+Output of this step: `{ email, handle, displayName }`.
 
 ### 3. Ensure branch is pushed
 
@@ -262,8 +236,7 @@ Ask your git host (via its CLI/MCP) whether an open PR/MR already exists for the
 number, draft flag, and state.
 
 - **PR/MR exists and is open** → ask via `AskUserQuestion`:
-  - "Update reviewer (+ tracker field if configured) only" → skip to step 6 with the existing PR/MR URL, after
-    requesting the reviewer on the existing PR/MR.
+  - "Update reviewer only" → request the reviewer on the existing PR/MR, then go to final output.
   - "Cancel" → exit cleanly.
 - **No PR/MR / closed PR/MR** → proceed.
 
@@ -313,30 +286,10 @@ EOF
 The exact subcommand and flag names depend on your git host's CLI — the client wires that here. The web UI is an equally
 valid path; the heredoc only matters when the body goes through a shell. Capture the PR/MR URL from the result.
 
-### 6. (Optional) Set the issue tracker's reviewer/QA field
+### 6. Final output
 
-**Only if** your team has configured a reviewer/QA field id in `references/team-mapping.md`. With no field configured,
-skip this step entirely — the reviewer is already requested on the PR/MR, which is enough for most teams.
-
-If configured, set it with the field id from your config and the `jiraAccountId` resolved in step 2:
-
-```yaml
-mcp__atlassian__editJiraIssue
-  cloudId: <cloudId from step 0>
-  issueIdOrKey: <TICKET>
-  fields:
-    <your-configured-field-id>:
-      accountId: <jiraAccountId>
-```
-
-**If the edit fails after the PR/MR has already been opened**, do **not** roll back the PR/MR. Print the Jira error and
-the manual retry so the user can fix the ticket from their end.
-
-### 7. Final output
-
-Print the summary defined in [`references/final-output.md`](references/final-output.md) (PR/MR URL + Jira link; and, when
-the optional field was set, a line noting the reviewer/QA was set to `<displayName>`). `<site>` is the `url` from the
-resource resolved in step 0.
+Print the summary defined in [`references/final-output.md`](references/final-output.md) (PR/MR URL + Jira link).
+`<site>` is your Jira site host.
 
 ## Edge cases
 
@@ -355,4 +308,3 @@ reviewer-resolution problems, push/PR-MR/Jira errors, existing-PR/MR and cancel 
 - PR/MR title/description conventions are owned by `/common:git-pr`; this skill defers to it and never re-defines them.
 - Status transitions are out of scope; use `/common:jira-update` if you also want to move the ticket.
 - Use `/common:git-commit` to commit the files Phase 1 changes on the current branch.
-- The reviewer/QA tracker field is **opt-in** — nothing is hardcoded; configure it (or don't) in `references/team-mapping.md`.

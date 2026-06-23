@@ -2,25 +2,26 @@
 name: plan
 description: |
   Produce an implementation plan from a solution document (a Confluence page) as input — with systematic edge-case
-  discovery, Fibonacci story-point estimates, a 5-agent parallel architectural review, scope-creep triage, and
+  discovery, per-task effort estimates (in hours), a 5-agent parallel architectural review, scope-creep triage, and
   Confluence create/update on sign-off. The plan is a high-level architectural overview that concrete implementation is
   generated FROM later; it never contains code. Drafts section-by-section, never assuming unstated details.
 
   English triggers: "implementation plan", "write a plan", "plan this feature", "draft an implementation plan",
-  "rework the plan", "estimate the work", "story-point the plan", "/dev:plan"
+  "rework the plan", "estimate the work", "/dev:plan"
 
   České spouštěče: "implementační plán", "napiš plán", "naplánuj tuto funkci", "naplánuj implementaci",
-  "přepracuj plán", "odhadni práci", "ohodnoť plán story pointy", "/dev:plan"
+  "přepracuj plán", "odhadni práci", "odhadni pracnost plánu", "/dev:plan"
 disable-model-invocation: true
 model: opus
 effort: xhigh
 argument-hint: '[Solution document Confluence page URL/ID]'
 allowed-tools:
-  - mcp__atlassian__getAccessibleAtlassianResources
-  - mcp__atlassian__getConfluencePage
-  - mcp__atlassian__searchConfluenceUsingCql
-  - mcp__atlassian__getConfluencePageDescendants
-  - mcp__atlassian__getPagesInConfluenceSpace
+  - mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites
+  - mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site
+  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page
+  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_search
+  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page_descendants
+  - mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_pages_in_space
   - Read
   - Grep
   - Glob
@@ -40,11 +41,13 @@ results against scope, and create or update Confluence pages on sign-off.
 ## Input
 
 The input to this skill is a **solution document on a Confluence page** — fetch it with
-`mcp__atlassian__getConfluencePage` before drafting. If the user has not provided a Confluence page URL/ID for the
+`mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` before drafting. If the user has not provided a Confluence page URL/ID for the
 solution doc, ask for it before proceeding.
 
-> Resolve the Atlassian `cloudId` once at the start of the run via `mcp__atlassian__getAccessibleAtlassianResources`
-> (pick the resource whose `url` matches your site) and reuse it for every later Atlassian MCP call.
+> Hub Atlassian tools use the connection's active site — you don't pass a `cloudId`. If your team works across
+> multiple sites and the default isn't the right one, switch once at the start of the run with
+> `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (find the `cloud_id` via
+> `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites`).
 
 ## Mode & Execution
 
@@ -157,7 +160,7 @@ assumption.
 
 - User asks to create, draft, or rework an implementation plan.
 - User references a planning checklist or a Confluence page that needs restructuring into a plan.
-- Any task that requires estimation in Fibonacci SP + multi-agent architectural review.
+- Any task that requires effort estimation + multi-agent architectural review.
 
 ## Checklist Source of Truth (Optional)
 
@@ -165,14 +168,12 @@ If your organization maintains a canonical implementation-plan checklist in Conf
 planning session and conform the plan to it — do NOT copy it into this skill:
 
 ```text
-mcp__atlassian__getConfluencePage
-  cloudId: <cloudId from getAccessibleAtlassianResources>
-  pageId: <your org's checklist page ID>
-  contentFormat: "markdown"
+mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page
+  page_id: <your org's checklist page ID>
 ```
 
 If no such checklist exists, use the section structure below (sections 1–9) as the default plan shape. Either way, the
-plan-quality discipline in this skill (no code, feature-based decomposition, Fibonacci estimates, edge-case coverage,
+plan-quality discipline in this skill (no code, feature-based decomposition, effort estimates, edge-case coverage,
 multi-agent review, scope triage) always applies.
 
 ## Default Plan Structure (sections 1–9)
@@ -180,7 +181,7 @@ multi-agent review, scope triage) always applies.
 1. **Summary** — what this plan delivers, in 2–3 sentences.
 2. **Scope & Non-Goals** — what's in, what's explicitly out.
 3. **Architecture Context** — the relevant baseline + Decision Records (by DR-ID) the plan must honor.
-4. **Tasks** — feature-based decomposition, each task with a Fibonacci story-point estimate and acceptance criteria.
+4. **Tasks** — feature-based decomposition, each task with an effort estimate (in hours) and acceptance criteria.
 5. **Dependencies & Sequencing** — inter-task and external dependencies, build order.
 6. **Edge Cases & Business-Case Coverage** — discovered edge cases and how each requirement/journey is covered.
 7. **Risks & Mitigations** — technical and delivery risks with mitigations.
@@ -226,7 +227,7 @@ What a task looks like:
 - A user-visible capability, end-to-end slice, or a self-contained backend behavior that delivers value or unblocks the
   next slice.
 - Spans whatever layers it needs (DB + API + UI + integration) bundled into one deployable unit.
-- Sized against the Fibonacci scale below. If it exceeds 8 SP, split along feature/capability lines — not along layers.
+- Sized by effort (see Estimation below). If it exceeds ~2 days of effort, split along feature/capability lines — not along layers.
 
 What a task is NOT:
 
@@ -255,22 +256,14 @@ deployed alone, rethink the slice; don't shatter it into plumbing tickets.
 
 ## Estimation
 
-Each task MUST include a Fibonacci story point estimate:
+Each task MUST include an **effort estimate in hours** — the implementer's best estimate of focused work to take the
+task to done.
 
-| SP | Max Effort |
-|----|------------|
-| 1  | < 2 hours  |
-| 2  | < 4 hours  |
-| 3  | < 8 hours  |
-| 5  | < 16 hours |
-| 8  | < 3 days   |
-| 13 | < 1 week   |
-| 21 | < 2 weeks  |
+Tasks estimated at more than ~2 days of effort MUST be broken into smaller subtasks; a task should be small enough to
+reason about and review in one slice.
 
-Tasks estimated at 8+ SP MUST be broken into smaller subtasks.
-
-**Totals:** SP are NOT additive. Sum the max-effort hours behind each task, then convert total hours back to the nearest
-SP. Example: 2 SP (4h) + 2 SP (4h) = 8h → 3 SP. The plan summary must show both total hours and equivalent SP.
+**Totals:** sum the per-task hour estimates for the plan total. The plan summary must show the total effort in hours
+(and days where that reads more naturally).
 
 **Buffers** (apply on top of raw implementation hours, tune defaults to your team's process):
 
@@ -385,7 +378,7 @@ its gaps at plan-time fragments the source of truth and means the next plan iter
    - **(c) Accept the gap explicitly** — only if the user judges it not worth fixing now. Record under **Open
      Questions** with the upstream owner and the impact on the plan's correctness.
 4. **Re-fetch if (a) was chosen.** Re-fetch the Confluence solution-doc page in full via
-   `mcp__atlassian__getConfluencePage`. Refresh carried-forward DRs and journey enumerations. Do not work from
+   `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page`. Refresh carried-forward DRs and journey enumerations. Do not work from
    memory of the prior version.
 5. **Resume planning** from the paused section.
 
@@ -416,7 +409,7 @@ If the user asks to update an EXISTING page rather than create new children, pas
 
 ## Workflow Summary
 
-1. Resolve the Atlassian `cloudId`. Fetch the org checklist page (if one exists) — every session.
+1. Ensure the correct Atlassian site is active (only if your team uses more than one). Fetch the org checklist page (if one exists) — every session.
 2. Fetch the solution-doc Confluence page and read it in full.
 3. Explore the relevant codebase (use Explore sub-agents for large scope).
 4. Draft sections 1–9 (per the org checklist, or the default shape above), **citing the solution doc by J-ID / DR-ID /

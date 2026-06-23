@@ -1,7 +1,7 @@
 ---
 description: |
   Create Stories + Sub-tasks under an existing Jira Epic from an implementation plan (a Confluence page or a local
-  markdown file), with estimates populated. Never creates Epics. Use for: "plan to jira", "create tickets from plan",
+  markdown file). Never creates Epics. Use for: "plan to jira", "create tickets from plan",
   "break the plan into tickets", "plán do jiry", "vytvoř tickety z plánu", "rozpadni plán na tickety",
   "/dev:plan-to-jira-tickets".
 argument-hint: [Confluence URL or file path]
@@ -9,7 +9,7 @@ argument-hint: [Confluence URL or file path]
 
 # /dev:plan-to-jira-tickets
 
-Take an implementation plan and produce Stories + Sub-tasks under an existing Jira Epic, with estimates populated. **Never create Epics** — Epics are managed by PMs. $ARGUMENTS
+Take an implementation plan and produce Stories + Sub-tasks under an existing Jira Epic. **Never create Epics** — Epics are managed by PMs. Estimates from the plan are surfaced in the preview for manual entry — the Hub connector can't write custom estimate fields. $ARGUMENTS
 
 ## Prerequisites
 
@@ -17,33 +17,33 @@ Take an implementation plan and produce Stories + Sub-tasks under an existing Ji
 
 This command **delegates per-ticket creation to `/common:create-jira-ticket`**. If that command is not available in the current environment, stop with: `/common:create-jira-ticket command not found; install the common plugin before running /dev:plan-to-jira-tickets`.
 
-Do not re-implement ticket creation logic here — follow the flow defined in `/common:create-jira-ticket` (field resolution, markdown→ADF conversion, MCP call, error handling). This command owns only plan parsing, tree construction, idempotency, batch preview, and orchestration.
+Do not re-implement ticket creation logic here — follow the flow defined in `/common:create-jira-ticket` (field resolution, MCP call, error handling). This command owns only plan parsing, tree construction, idempotency, batch preview, and orchestration.
 
 ### Atlassian MCP
 
 Exposing:
 
-- `mcp__atlassian__getAccessibleAtlassianResources` (read — resolve `cloudId`)
-- `mcp__atlassian__createJiraIssue` (write — used via `/common:create-jira-ticket`)
-- `mcp__atlassian__editJiraIssue` (write)
-- `mcp__atlassian__getConfluencePage` (read)
-- `mcp__atlassian__searchJiraIssuesUsingJql` (read, for idempotency check)
-- `mcp__atlassian__atlassianUserInfo` (read, for assignee resolution)
-- `mcp__atlassian__getTransitionsForJiraIssue` (read, for status transition)
-- `mcp__atlassian__transitionJiraIssue` (write, for setting TO-DO status)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_list_sites` (read — list Atlassian sites)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_set_active_site` (write — switch site, only if multi-site)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_create_issue` (write — used via `/common:create-jira-ticket`)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` (read)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_search` (read, for idempotency check)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__atlassian_user_info` (read, for assignee resolution)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_get_transitions` (read, for status transition)
+- `mcp__claude_ai_Connectivity_Hub__atlassian__jira_transition_issue` (write, for setting TO-DO status)
 
 If any are missing, stop with a clear error naming the missing tool.
 
 ## Inputs
 
 - **Plan source** (required):
-  - Confluence page URL or ID (primary) — fetched via `getConfluencePage`, storage format converted to plain structure.
+  - Confluence page URL or ID (primary) — fetched via `confluence_get_page` (returns the body as Markdown).
   - Local markdown file path (secondary).
   - If neither provided, ask.
 - **Jira context** (required, ask every run):
-  - `cloudId` / site URL — resolve via `getAccessibleAtlassianResources` (pick the resource whose `url` matches the site).
+  - **Atlassian site** — the Hub uses the connection's active site; you don't pass a `cloudId`. If your team works across multiple sites, switch once with `atlassian_set_active_site` before creating.
   - **parent Epic key** (e.g. `PROJ-42`) — the existing Epic under which all Stories will be created. Never create new Epics. The project key is derived from the Epic key prefix (`PROJ-42` → project `PROJ`).
-- **Assignee** — automatically resolved to the current user via `atlassianUserInfo` MCP tool. Do not ask.
+- **Assignee** — automatically resolved to the current user via `atlassian_user_info`. Do not ask.
 - **Optional global fields** (ask once, apply to all tickets):
   - labels, priority. Empty is allowed.
 
@@ -87,23 +87,23 @@ In the mapping confirmation (step 6), explicitly list which bullets were demoted
 
 ## Estimate Detection
 
-Read each task's Story Point estimate directly from the plan (the plan skill records a numeric estimate per task). Write it to your Jira's Story Points field — the field ID is instance-specific (e.g. `customfield_XXXXX`); configure your project's actual field ID or discover it from the issue field metadata. For a Story with Sub-tasks, put the estimate on whichever level your team tracks; if the plan's estimate placement is ambiguous, ask the user.
+Read each task's effort estimate directly from the plan (the plan skill records a numeric estimate per task) and **surface it in the mapping outline and batch preview** so it's easy to transcribe. The Hub connector **cannot write custom estimate fields** (or any custom field), so estimates are **not** set on the created tickets — the user adds them manually in Jira afterward. For a Story with Sub-tasks, show the estimate on whichever level your team tracks; if the plan's estimate placement is ambiguous, ask the user.
 
 ## Flow
 
 1. **Resolve plan source.** If neither URL nor path provided, ask.
-2. **Fetch and parse.** For Confluence: `getConfluencePage` → convert storage format to plain markdown-equivalent structure. For local file: read directly. Extract title, top-level structure, estimate markers.
-3. **Resolve Jira context.** Resolve `cloudId` via `getAccessibleAtlassianResources`; prompt for the parent Epic key. Derive the project key from the Epic key prefix (e.g. `PROJ-42` → `PROJ`).
-4. **Resolve assignee.** Call `atlassianUserInfo` to get the current user's accountId. All tickets will be assigned to this user.
-5. **Propose tree.** Build the Story→Sub-task tree under the provided Epic, with estimates where detected; flag blanks. Remember: Stories with Sub-tasks do NOT get SP — only the Sub-tasks carry SP.
+2. **Fetch and parse.** For Confluence: `confluence_get_page` (returns Markdown). For local file: read directly. Extract title, top-level structure, estimate markers.
+3. **Resolve Jira context.** Ensure the correct Atlassian site is active (only if your team uses multiple sites; switch via `atlassian_set_active_site`); prompt for the parent Epic key. Derive the project key from the Epic key prefix (e.g. `PROJ-42` → `PROJ`).
+4. **Resolve assignee.** Call `atlassian_user_info` to get the current user's accountId. All tickets will be assigned to this user.
+5. **Propose tree.** Build the Story→Sub-task tree under the provided Epic, showing estimates where detected (for manual entry — see Estimate Detection); flag blanks. Convention: show the estimate on Sub-tasks, or on Stories without Sub-tasks.
 6. **Mapping confirmation.** Show the tree as an outline:
 
     ```
     Parent Epic: <epic key>
       Story: <title>
-        Sub-task: <title> [2 SP, 2h]
-        Sub-task: <title> [3 SP, 3h]
-      Story: <title> [3 SP]
+        Sub-task: <title> [2h]
+        Sub-task: <title> [3h]
+      Story: <title> [3h]
     ```
 
     User can: approve (`ok`), re-map a node (`merge Story 2 and 3`, `demote Story 4 to sub-task of Story 3`), or abort.
@@ -113,15 +113,15 @@ Read each task's Story Point estimate directly from the plan (the plan skill rec
     2. Add only Stories/Sub-tasks not already present.
     3. Create all anyway (duplicates possible).
 8. **Fill remaining fields.** For each ticket:
-    - Description = relevant plan section (Story = section body; Sub-task = bullet + its parent context).
+    - Description = relevant plan section (Story = section body; Sub-task = bullet + its parent context), as Markdown (the connector converts it to ADF).
     - Apply assignee (current user), labels/priority from step 3.
-    - Story Points via your Jira's Story Points custom field (its ID is instance-specific, e.g. `customfield_XXXXX`; configure your project's actual field ID or discover it from the issue field metadata — do not assume another instance's ID). Apply only on Sub-tasks, or on Stories without Sub-tasks.
-9. **Batch preview.** Render a numbered list of every ticket in create order with all resolved fields. Format per ticket: `N. [Type] <new> → <summary>` with compact field lines (SP, OE, parent). Prompt: `create / skip 3,7 / edit 5 / abort`.
-10. **Create in order via `/common:create-jira-ticket`.** For each ticket in the approved batch, follow the `/common:create-jira-ticket` flow using the resolved fields from the batch preview. Because the batch preview in step 9 already served as confirmation, invoke `/common:create-jira-ticket` in **batch mode** (skip its per-ticket preview gate — see `/common:create-jira-ticket`'s "Batch Mode" section). All fields needed (cloudId, project, issueType, summary, description, assignee, priority, labels, parent, additionalFields incl. estimate fields) are passed through from the batch.
+    - Effort estimates are **not** written — the Hub connector can't set custom fields. They're shown in the preview for the user to enter manually in Jira.
+9. **Batch preview.** Render a numbered list of every ticket in create order with all resolved fields. Format per ticket: `N. [Type] <new> → <summary>` with compact field lines (estimate, parent). Prompt: `create / skip 3,7 / edit 5 / abort`.
+10. **Create in order via `/common:create-jira-ticket`.** For each ticket in the approved batch, follow the `/common:create-jira-ticket` flow using the resolved fields from the batch preview. Because the batch preview in step 9 already served as confirmation, invoke `/common:create-jira-ticket` in **batch mode** (skip its per-ticket preview gate — see `/common:create-jira-ticket`'s "Batch Mode" section). All fields needed (project, issueType, summary, description, assignee, priority, labels, parent) are passed through from the batch.
     - Stories first, each with `parent` = Epic key → capture keys.
     - Sub-tasks next, each with `parent` = Story key.
     - On any failure: stop, report what succeeded, do not attempt rollback.
-11. **Post-create: transition to TO-DO.** After each ticket is created, call `getTransitionsForJiraIssue` to find the transition ID for "To Do" status, then call `transitionJiraIssue` to move the ticket to TO-DO. If the transition fails (e.g. already in TO-DO), log a warning and continue.
+11. **Post-create: transition to TO-DO.** After each ticket is created, call `jira_get_transitions` to find the transition ID for "To Do" status, then call `jira_transition_issue` to move the ticket to TO-DO. If the transition fails (e.g. already in TO-DO), log a warning and continue.
 12. **Summary.** Return: parent Epic key + count (`Created 4 Stories, 11 Sub-tasks under PROJ-42`).
 
 ## Safety Gates
@@ -141,8 +141,7 @@ If the user says `preview only` or equivalent: run up to step 9 (batch preview),
 
 - MCP errors surfaced verbatim, field highlighted.
 - On partial-batch failure: print the success list (`Created PROJ-101, PROJ-102; failed on Sub-task 'Deploy staging': <reason>`) and stop. No rollback.
-- If estimate field IDs are wrong: the first create will fail with a schema error — report which field is rejected and ask for the correct ID.
 
 ## Out of Scope
 
-Epic creation, comments, attachments, sprint/board assignment, automatic custom-field detection beyond Story Points (instance-specific field ID), Original Estimate, and `additionalFields`.
+Epic creation, comments, attachments, sprint/board assignment, and any custom fields — including effort estimates. The Hub connector can't write custom fields; estimates are surfaced in the preview for manual entry only.

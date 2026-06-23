@@ -54,7 +54,7 @@ from memory.
 
 ```
 brainstorming  →  solution-doc (this skill)               →  /dev:plan
-   (what)           (architecture baseline as DRs +            (tasks + story points)
+   (what)           (architecture baseline as DRs +            (tasks + estimates)
                      for whom / why / what good looks like)
                               ↕
                           /dev:compare

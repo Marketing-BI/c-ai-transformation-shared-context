@@ -23,7 +23,7 @@ description: |
 user-invocable: true
 argument-hint: '[source: jira-key | confluence-url | local-file-path | inline-description] [jira-key-or-jql]'
 allowed-tools:
-  Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, AskUserQuestion, mcp__atlassian__*
+  Read, Write, Edit, Bash, Glob, Grep, Agent, Skill, AskUserQuestion, mcp__claude_ai_Connectivity_Hub__atlassian__*
 effort: xhigh
 ---
 
@@ -126,8 +126,8 @@ Proceed to **Step 2**.
 
 ### 1b — Confluence URL
 
-Fetch the page **read-only** via `mcp__atlassian__getConfluencePage` (resolve the `cloudId` first via
-`mcp__atlassian__getAccessibleAtlassianResources`). Extract title + body as markdown. **No code scan.** Treat the
+Fetch the page **read-only** via `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_get_page` (it returns the body
+as Markdown; the Hub uses the active Atlassian site, so no `cloudId` is passed). Extract title + body. **No code scan.** Treat the
 fetched content as the plan input. **Skip Step 2** — proceed to **Step 3**.
 
 ### 1c — Local file
@@ -155,7 +155,7 @@ Show the user the structured context dump from `/dev:analyze-jira-ticket` and as
 > "Analysis complete. The output above is a structured context dump (ticket content + related code + observations) —
 > not yet a formal implementation plan. Two options:
 >
-> **(a) Formalize into a plan via `/dev:plan`** — heavyweight: edge-case discovery, story-point estimates, parallel
+> **(a) Formalize into a plan via `/dev:plan`** — heavyweight: edge-case discovery, effort estimates, parallel
 > architectural review, plan written to Confluence on sign-off. Best for non-trivial work where the ROI of a formal
 > plan is worth it.
 >
@@ -282,7 +282,7 @@ Wrap up (after the single PR/MR for A/B, or after the final umbrella merge for C
   only), delegates the doing phase, and branches on the returned delivery model. It does **not** write plans, run code
   scans (that's `/dev:analyze-jira-ticket`), implement code, dispatch reviewers, or restate any brick's internals — it
   names the brick and hands off.
-- **Source dispatch** — Jira → `/dev:analyze-jira-ticket`; Confluence → `getConfluencePage` (read-only); local file →
+- **Source dispatch** — Jira → `/dev:analyze-jira-ticket`; Confluence → `confluence_get_page` (read-only); local file →
   `Read`; inline → use the prompt as-is. The primary load is the source-dispatch; reach for `/common:context-pull` only
   for a wider cross-system picture the single source doesn't give — don't duplicate.
 - **The plan question runs ONLY for Jira sources.** For Confluence / local / inline, the content is expected to be a

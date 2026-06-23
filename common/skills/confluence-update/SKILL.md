@@ -75,7 +75,7 @@ Every page must have:
 **Creating a new page:**
 
 - Confirm the target space and parent page before calling the MCP tool
-- Use `mcp__atlassian__createConfluencePage`
+- Use `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_create_page`
 
 **Updating an existing page:**
 
@@ -83,7 +83,7 @@ Every page must have:
 - Append to sections rather than overwriting, unless making corrections
 - Never remove content without confirming it is no longer needed
 - Update the `Last updated` date after any meaningful change
-- Use `mcp__atlassian__updateConfluencePage`
+- Use `mcp__claude_ai_Connectivity_Hub__atlassian__confluence_update_page`
 
 ## Edge cases and failure modes
 

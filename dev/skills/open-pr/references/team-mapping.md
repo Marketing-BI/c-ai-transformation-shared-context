@@ -16,22 +16,12 @@ replace them with your real teammates. Do **not** commit anyone who isn't on you
 Notes:
 
 - **Git-host handle** is the username on whatever host you use — it's what gets requested as the reviewer on the PR/MR.
-- **Email** is used only to resolve the optional issue-tracker reviewer/QA account at runtime (see below); the tracker
-  account id is **not** stored here — `/dev:open-pr` resolves it by looking the person up in your issue tracker by email
-  (the Atlassian MCP account-lookup call) only when the optional field is configured.
+- **Email** and **display name** are match keys: `/dev:open-pr` resolves a `reviewer` arg against the table by email,
+  handle, or display-name substring.
 - If the table has only one row, that person is the default reviewer; still confirm with the user before proceeding when
   no `reviewer` arg was passed.
 - Keep this list current — `/dev:open-pr` can only request reviewers it finds here (or that the user types in when
   prompted).
 
-## Optional: issue-tracker reviewer/QA field (opt-in)
-
-If your team records the reviewer/QA on the issue itself, set your tracker's field id here and `/dev:open-pr` step 6
-will populate it for the same person it requests on the PR/MR. **Leave it unset to skip that step entirely** — nothing
-is hardcoded and the reviewer is still requested on the PR/MR.
-
-```text
-reviewer-qa-field-id: «your-tracker-field-id»   # e.g. a Jira user-picker custom field; leave unset to skip
-```
-
-When set, the field is treated as a user-picker whose value shape is `{ "accountId": "<resolved id>" }`.
+> **Note:** writing a reviewer/QA value back onto the Jira issue is **not** supported via the Hub connector — its
+> `jira_update_issue` can't set custom fields. The reviewer is requested on the PR/MR only.

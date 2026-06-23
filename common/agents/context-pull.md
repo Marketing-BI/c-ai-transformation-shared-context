@@ -47,30 +47,30 @@ date_from: [date_from or "14 days ago"]
 Instructions by use_case:
 
 If epic_id is provided (any use_case):
-1. Fetch the epic: getJiraIssue for [epic_id] — title, status, description
-2. Fetch all child issues: searchJiraIssuesUsingJql
+1. Fetch the epic: jira_get_issue for [epic_id] — title, status, description
+2. Fetch all child issues: jira_search
    JQL: project = [JIRA_PREFIX] AND "Epic Link" = [epic_id] ORDER BY status ASC, priority ASC
    fields: summary, status, assignee, priority — maxResults: 50
 3. Return epic + children only.
 
 If use_case = handover (no epic_id):
-1. Fetch all open epics: searchJiraIssuesUsingJql
+1. Fetch all open epics: jira_search
    JQL: project = [JIRA_PREFIX] AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC
    fields: summary, status, description — maxResults: 10
 2. For EACH open epic, fetch child issues in parallel.
 
 If use_case = gate-check (no epic_id):
-1. searchJiraIssuesUsingJql: project = [JIRA_PREFIX] AND statusCategory != Done ORDER BY updated DESC
+1. jira_search: project = [JIRA_PREFIX] AND statusCategory != Done ORDER BY updated DESC
    fields: summary, status, priority, assignee, updated — maxResults: 30
-2. searchJiraIssuesUsingJql: project = [JIRA_PREFIX] AND issuetype = Epic ORDER BY updated DESC
+2. jira_search: project = [JIRA_PREFIX] AND issuetype = Epic ORDER BY updated DESC
    fields: summary, status, description — maxResults: 10
 
 If use_case = brief or meeting-context (no epic_id):
-searchJiraIssuesUsingJql: project = [JIRA_PREFIX] AND statusCategory != Done ORDER BY updated DESC
+jira_search: project = [JIRA_PREFIX] AND statusCategory != Done ORDER BY updated DESC
 fields: summary, status, priority, assignee, updated — maxResults: 20
 
 If use_case = activity (no epic_id):
-searchJiraIssuesUsingJql: assignee = currentUser() AND updated >= "[date_from]" ORDER BY updated DESC
+jira_search: assignee = currentUser() AND updated >= "[date_from]" ORDER BY updated DESC
 fields: summary, status, issuetype, priority, updated, project — maxResults: 50
 
 Return this exact format:
@@ -109,16 +109,16 @@ date_from: [date_from or "1 week ago"]
 Instructions by use_case:
 
 briefing, gate-check, handover:
-1. searchConfluenceUsingCql: space = "[CONFLUENCE_SPACE]" AND text ~ "[topic]" ORDER BY lastModified DESC — limit 5
-2. searchConfluenceUsingCql: space = "[CONFLUENCE_SPACE]" AND (title ~ "architecture" OR title ~ "scope" OR title ~ "brief" OR title ~ "design") ORDER BY lastModified DESC — limit 5
-For results directly relevant to the topic, read the full page with getConfluencePage.
+1. confluence_search: space = "[CONFLUENCE_SPACE]" AND text ~ "[topic]" ORDER BY lastModified DESC — limit 5
+2. confluence_search: space = "[CONFLUENCE_SPACE]" AND (title ~ "architecture" OR title ~ "scope" OR title ~ "brief" OR title ~ "design") ORDER BY lastModified DESC — limit 5
+For results directly relevant to the topic, read the full page with confluence_get_page.
 
 meeting-context:
-searchConfluenceUsingCql: space = "[CONFLUENCE_SPACE]" AND lastModified >= "1w" ORDER BY lastModified DESC — limit 10
-For results relevant to the topic, read the full page with getConfluencePage.
+confluence_search: space = "[CONFLUENCE_SPACE]" AND lastModified >= "1w" ORDER BY lastModified DESC — limit 10
+For results relevant to the topic, read the full page with confluence_get_page.
 
 activity:
-searchConfluenceUsingCql: contributor = "[ATLASSIAN_ACCOUNT_ID]" AND lastModified >= "[date_from]" — limit 20
+confluence_search: contributor = "[ATLASSIAN_ACCOUNT_ID]" AND lastModified >= "[date_from]" — limit 20
 
 Skip full reads for clearly off-topic pages.
 
