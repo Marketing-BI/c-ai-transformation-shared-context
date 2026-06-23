@@ -1,1 +1,1 @@
-{ "name": "context", "version": "0.1.0", "description": "Context-index skills: build a navigation router page (context-create) and audit it for dead links / drift (context-validate)." }
+{ "name": "context", "version": "0.2.0", "description": "Context-index skills: build a navigation router page (context-create) and audit it for dead links / drift (context-validate)." }
