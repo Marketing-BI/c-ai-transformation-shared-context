@@ -4,10 +4,10 @@ A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace 
 
 | Plugin | For whom | What it carries |
 |---|---|---|
-| **`common`** | Everyone | Org-wide behavior and coding standards, shared git and Jira slash commands, Jira & Confluence skills, a context-pull agent, code-review standards, and a prompt/skill evaluation pipeline. |
+| **`common`** | Everyone | Org-wide behavior and coding standards, the always-on context-index rule (its `SessionStart` hook points Claude at the org's `context__get_index` MCP tool — the navigation index of where company info lives — and tells it to call that tool first for company-specific questions), shared git and Jira slash commands, Jira & Confluence skills, a context-pull agent, code-review standards, and a prompt/skill evaluation pipeline. |
 | **`dev`** | Engineering teams | Language-agnostic software-delivery context: coding standards, conditional convention skills (backend, database, docker, testing), the Jira → analysis → implementation → review → PR workflow, planning and solution-doc skills, project `CLAUDE.md` scaffolding, and independent reviewer agents. |
 | **`business`** | Commercial teams | Generic CRM operating discipline, interactive Statement of Work and Business Brief generators, ICP / customer-intelligence research, and discovery / sales-call coaching. |
-| **`context`** | Everyone | Working with company context. Its `SessionStart` hook injects an always-on rule that points Claude at the org's `context__get_index` MCP tool (the navigation index of where company info lives) and tells it to call that tool first for company-specific questions. Plus two skills: `context-create` (build the navigation index page) and `context-validate` (audit it for dead links / drift). |
+| **`context`** | Index maintainers | Building and maintaining the company context index. Two skills: `context-create` (build the navigation index page) and `context-validate` (audit it for dead links / drift). The always-on rule that makes Claude *use* the index lives in `common`, so consumers don't need this plugin. |
 
 The rules are **language-agnostic** — they capture universal engineering and operating principles, so teams can layer their own stack (Java, Kotlin, Swift, or anything else) on top.
 
@@ -69,8 +69,8 @@ Managed settings take precedence over per-user and per-project settings, so the 
 
 Pick the plugin set per audience:
 
-- **`common`** — enable everywhere; it is the shared baseline.
-- **`context`** — enable everywhere; it points Claude at the company context index.
+- **`common`** — enable everywhere; it is the shared baseline and carries the context-index rule that points Claude at the company context index.
+- **`context`** — enable only for people who build / maintain the context index.
 - **`dev`** — enable for engineering teams.
 - **`business`** — enable for commercial teams.
 
@@ -101,10 +101,10 @@ Skills and commands respond to both **Czech and English** triggers, so the same 
 
 ```
 .claude-plugin/marketplace.json   # Marketplace manifest: lists the three plugins
-common/                           # Org-wide standards, shared commands, Jira/Confluence skills, code-review, eval pipeline
+common/                           # Org-wide standards + context-index rule (SessionStart hook → context__get_index), shared commands, Jira/Confluence skills, code-review, eval pipeline
 dev/                              # Software-delivery context: conventions, workflow, planning, reviewer agents
 business/                         # CRM discipline, SOW/Brief generators, prospecting, sales-call coaching
-context/                          # Company-context rule (SessionStart hook → context__get_index) + context-create / context-validate skills
+context/                          # context-create / context-validate skills (for index maintainers)
 CODEOWNERS                        # Review ownership (placeholder teams — update for your org)
 CONTRIBUTING.md                   # How to extend this repo
 ```
